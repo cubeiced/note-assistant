@@ -122,12 +122,57 @@ button,input,textarea,select{font-family:inherit;}
 .jcard .co{font-weight:600;margin-bottom:2px;}
 .jcard .role{color:var(--ink-soft);font-size:11.5px;}
 .jcard select{margin-top:6px;width:100%;font-size:11px;border:1px solid var(--line);border-radius:5px;padding:3px;}
+.jcard-meta{display:flex;align-items:center;gap:6px;margin-top:6px;}
+.jcard-tag{font-size:10px;color:var(--ink-soft);background:var(--paper);border-radius:8px;padding:1px 7px;}
+.jcard-link{font-size:11px;color:var(--accent);text-decoration:none;margin-left:auto;}
+.jcard-link:hover{text-decoration:underline;}
 .add-job{border:1px dashed var(--line);border-radius:8px;padding:8px;text-align:center;font-size:11.5px;color:var(--ink-soft);cursor:pointer;}
 .add-job:hover{border-color:var(--accent);color:var(--accent);}
+
+.job-stats{display:flex;flex-wrap:wrap;gap:6px;font-size:11.5px;color:var(--ink-soft);margin-bottom:14px;}
+.job-stats b{color:var(--ink);font-weight:600;}
+.job-search{position:relative;max-width:420px;margin-bottom:16px;}
+.job-search input{width:100%;padding:9px 10px 9px 30px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:12.5px;color:var(--ink);outline:none;}
+.job-search input:focus{border-color:var(--accent);}
+.job-search svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--ink-soft);}
+.job-form{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:20px;}
+.job-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.job-form-field label{display:block;font-size:10.5px;color:var(--ink-soft);margin-bottom:4px;}
+.job-form-field input,.job-form-field select,.job-form-field textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--paper);font-size:12.5px;color:var(--ink);outline:none;}
+.job-form-field textarea{min-height:50px;resize:vertical;}
+.job-form-field input:focus,.job-form-field select:focus,.job-form-field textarea:focus{border-color:var(--accent);}
+.job-form-actions{display:flex;justify-content:flex-end;}
+.job-form-actions button{background:var(--ink);color:var(--paper);border:none;border-radius:8px;padding:8px 18px;font-size:11.5px;cursor:pointer;}
+.job-form-actions button:hover{background:var(--accent);}
 
 /* Worklog */
 .day-group{margin-bottom:16px;}
 .day-label{font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:7px;}
+.wl-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.chip{font-size:11.5px;padding:4px 11px;border-radius:14px;background:var(--paper);color:var(--ink-soft);cursor:pointer;border:1px solid transparent;}
+.chip:hover{border-color:var(--line);}
+.chip.active{background:#EAF0F7;color:var(--accent);font-weight:600;}
+.capture-actions select{border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:11.5px;background:var(--card);color:var(--ink);outline:none;}
+.week-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:20px;}
+.week-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.week-warn{display:flex;gap:6px;font-size:12px;color:var(--accent-warm);background:#FBF3EA;border-radius:7px;padding:8px 10px;margin-bottom:10px;line-height:1.5;}
+.week-card textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:8px;padding:10px;font-family:'Source Serif 4',serif;font-size:13px;color:var(--ink);background:var(--paper);resize:vertical;outline:none;}
+.week-card textarea:focus{border-color:var(--accent);}
+.todo-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:3px 0;}
+.todo-row input{accent-color:var(--accent);}
+.todo-done{text-decoration:line-through;color:var(--ink-soft);}
+
+/* Course guide */
+.course-guide{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;}
+.guide-steps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.guide-step{background:var(--paper);border-radius:8px;padding:10px;text-align:center;}
+.gs-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;}
+.gs-t{font-size:12px;font-weight:600;}
+.gs-d{font-size:10.5px;color:var(--ink-soft);margin-top:2px;}
+.guide-example{border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px;opacity:0.75;}
+.ge-label{font-size:10px;color:var(--ink-soft);margin-bottom:4px;}
+.ge-title{font-size:13px;font-weight:600;}
+.ge-desc{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
 
 /* Courses */
 .course-grid{display:flex;flex-direction:column;gap:10px;}
@@ -186,18 +231,22 @@ const STAGES = [
   {key:'Offer', color:'var(--stage-offer)'},
   {key:'已结束', color:'var(--stage-closed)'},
 ];
+const WORKLOG_TAGS = ['会议纪要','待办','日报','周报'];
 const CAT_COLORS = {f_job:'var(--cat-job)',f_company:'var(--cat-company)',f_interview:'var(--cat-interview)',f_referral:'var(--cat-referral)',f_learning:'var(--cat-learning)',f_life:'var(--cat-life)',f_worklog:'var(--cat-worklog)',__unfiled__:'var(--cat-unfiled)'};
 function colorFor(id){ return CAT_COLORS[id] || 'var(--cat-custom)'; }
 function uid(p){ return p+'_'+Math.random().toString(36).slice(2,9); }
 
 let state = { folders: JSON.parse(JSON.stringify(BUILTIN_FOLDERS)), items: [], jobs: [], courses: [], courseSteps: [] };
-let ui = { view:'all', pendingImages:[], suggestion:null, modal:null, search:'' };
+let ui = { view:'all', pendingImages:[], suggestion:null, modal:null, search:'',
+  jobSearch:'', jobForm:{company:'',position:'',tag:'',stage:'待投递',jdLink:'',notes:''},
+  renamingFolderId:null,
+  wlFilterTag:'全部', wlTag:'会议纪要', wlPendingImages:[], weeklyDraft:'' };
 
 async function loadState(){
   try{
-    const r = await window.storage.get('notes_app_data', false);
-    if(r && r.value){
-      const d = JSON.parse(r.value);
+    const raw = localStorage.getItem('notes_app_data');
+    if(raw){
+      const d = JSON.parse(raw);
       state.folders = d.folders && d.folders.length ? d.folders : state.folders;
       state.items = d.items || [];
       state.jobs = d.jobs || [];
@@ -209,9 +258,9 @@ async function loadState(){
 }
 async function saveState(){
   try{
-    await window.storage.set('notes_app_data', JSON.stringify(state), false);
+    localStorage.setItem('notes_app_data', JSON.stringify(state));
   }catch(e){
-    toast('保存失败，可能是存储容量已满，建议导出备份');
+    toast('保存失败，可能是浏览器存储容量已满（通常是图片太多），建议导出备份并清理一些内容');
   }
 }
 function toast(msg){
@@ -284,6 +333,21 @@ async function aiClassify(text){
   }
 }
 
+/* ===================== AI 课程内容拆分 ===================== */
+async function aiSplitCourseContent(text){
+  const prompt = `以下是一节课的完整笔记内容，请帮我拆分成几个独立的"功能点"（知识点/操作步骤模块）。每个功能点包含一个简短标题(title)和对应内容(content)。只返回JSON数组，格式如[{"title":"...","content":"..."}]，不要任何其他文字。\n\n笔记内容：\n${text}`;
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1200, messages:[{role:'user', content:prompt}] })
+    });
+    const data = await resp.json();
+    const raw = (data.content||[]).map(c=>c.text||'').join('');
+    const clean = raw.replace(/```json|```/g,'').trim();
+    return JSON.parse(clean);
+  }catch(e){ return null; }
+}
+
 /* ===================== 渲染 ===================== */
 function render(){
   const app = document.getElementById('app');
@@ -322,14 +386,14 @@ function renderSidebar(){
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div class="module-card ${ui.view==='jobs'?'active':''}" data-view="jobs">
           <div class="module-title">📋 求职追踪</div>
-          <div class="module-sub">独立数据源 · 状态看板</div>
+          <div class="module-sub">按阶段看你投的所有岗位</div>
         </div>
         <div class="module-card ${ui.view==='worklog'?'active':''}" data-view="worklog">
-          <div class="module-title">🕐 工作日志 · 时间轴</div>
-          <div class="module-sub">与「工作日志」文件夹同源</div>
+          <div class="module-title">🕐 工作日志回顾</div>
+          <div class="module-sub">按时间线回看你写过的日志</div>
         </div>
         <div class="module-card ${ui.view==='courses'?'active':''}" data-view="courses">
-          <div class="module-title">🗂 课程记录</div>
+          <div class="module-title">🗂 课程整理</div>
           <div class="module-sub">分步教程 · 一键生成思维导图</div>
         </div>
       </div>
@@ -348,8 +412,12 @@ function renderSidebar(){
   const allRow = navItem('all','全部',state.items.length,'#8C7B6B',null,false);
   folderListEl.appendChild(allRow);
   state.folders.forEach(f=>{
-    const row = navItem('folder:'+f.id, f.name + (f.isWorklog?' 🕐':''), folderCount(f.id), colorFor(f.id), f.builtin?null:f.id, !f.builtin);
-    folderListEl.appendChild(row);
+    if(!f.builtin && ui.renamingFolderId===f.id){
+      folderListEl.appendChild(renameRow(f));
+    } else {
+      const row = navItem('folder:'+f.id, f.name + (f.isWorklog?' 🕐':''), folderCount(f.id), colorFor(f.id), f.builtin?null:f.id, !f.builtin);
+      folderListEl.appendChild(row);
+    }
   });
   const unfiledRow = navItem('folder:__unfiled__','未分类', folderCount('__unfiled__'), colorFor('__unfiled__'), null, false);
   folderListEl.appendChild(unfiledRow);
@@ -370,7 +438,7 @@ function renderSidebar(){
 function navItem(viewKey,label,count,color,delId,showDel){
   const b = document.createElement('button');
   b.className='nav-item'+(ui.view===viewKey?' active':'');
-  b.innerHTML = `<span class="nav-dot" style="background:${color}"></span><span>${escapeHtml(label)}</span><span class="nav-count">${count}</span>${showDel?'<span class="nav-del">✕</span>':''}`;
+  b.innerHTML = `<span class="nav-dot" style="background:${color}"></span><span class="nav-label"${delId?' title="双击重命名"':''}>${escapeHtml(label)}</span><span class="nav-count">${count}</span>${showDel?'<span class="nav-del">✕</span>':''}`;
   b.onclick=(e)=>{
     if(e.target.classList.contains('nav-del')){
       e.stopPropagation();
@@ -383,6 +451,34 @@ function navItem(viewKey,label,count,color,delId,showDel){
     }
     ui.view = viewKey; ui.suggestion=null; render();
   };
+  if(delId){
+    b.querySelector('.nav-label').ondblclick=(e)=>{
+      e.stopPropagation();
+      ui.renamingFolderId = delId; render();
+    };
+  }
+  return b;
+}
+
+function renameRow(f){
+  const b = document.createElement('div');
+  b.className='nav-item';
+  b.innerHTML = `<span class="nav-dot" style="background:${colorFor(f.id)}"></span><input id="renameInput" value="${escapeAttr(f.name)}" style="flex:1;border:1px solid var(--accent);border-radius:5px;padding:2px 6px;font-size:13px;background:var(--card);color:var(--ink);outline:none;">`;
+  const input = b.querySelector('#renameInput');
+  let done = false;
+  const commit = ()=>{
+    if(done) return; done = true;
+    const v = input.value.trim();
+    if(v) f.name = v;
+    ui.renamingFolderId = null;
+    saveState(); render();
+  };
+  input.onkeydown=(e)=>{
+    if(e.key==='Enter') commit();
+    if(e.key==='Escape'){ done=true; ui.renamingFolderId=null; render(); }
+  };
+  input.onblur = commit;
+  setTimeout(()=>{ input.focus(); input.select(); },0);
   return b;
 }
 
@@ -506,10 +602,8 @@ function renderFolderView(){
     `;
     wrap.querySelector('#suggestSlot').appendChild(banner);
     banner.querySelector('#sugCreate').onclick=()=>{
-      const nf = {id:uid('f'), name:s.suggestedName, builtin:false};
-      state.folders.push(nf);
-      addItem('note', nf.id, null, s.text, s.images);
-      ui.suggestion=null; render();
+      ui.modal={type:'confirmSuggestFolder', name:s.suggestedName, text:s.text, images:s.images};
+      render();
     };
     banner.querySelector('#sugUnfiled').onclick=()=>{
       addItem('note','__unfiled__', null, s.text, s.images);
@@ -571,56 +665,266 @@ function renderJobsView(){
   wrap.innerHTML = `
     <div class="view-head"><span class="view-title">求职追踪</span><span class="view-count">${state.jobs.length} 个岗位</span></div>
     <div class="view-hint">独立数据源 · 状态看板</div>
+    <div class="job-stats" id="jobStats"></div>
+    <div class="job-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="jobSearchInput" placeholder="搜索公司/岗位/备注..." value="${escapeAttr(ui.jobSearch)}">
+    </div>
+    <div class="job-form" id="jobForm"></div>
     <div class="kanban" id="kanban"></div>
   `;
-  const kb = wrap.querySelector('#kanban');
-  STAGES.forEach(st=>{
-    const col = document.createElement('div'); col.className='kcol';
-    const jobs = state.jobs.filter(j=>j.stage===st.key);
-    col.innerHTML = `<div class="kcol-head" style="background:${st.color}">${st.key} · ${jobs.length}</div><div class="kcol-body"></div>`;
-    const body = col.querySelector('.kcol-body');
-    jobs.forEach(j=>{
-      const c = document.createElement('div'); c.className='jcard';
-      c.innerHTML = `<div class="co">${escapeHtml(j.company)}</div><div class="role">${escapeHtml(j.position||'')}</div>`;
-      c.onclick=()=>{ ui.modal={type:'editJob', job:j}; render(); };
-      body.appendChild(c);
+
+  // 状态统计条
+  const statsEl = wrap.querySelector('#jobStats');
+  statsEl.innerHTML = STAGES.map(st=>{
+    const n = state.jobs.filter(j=>j.stage===st.key).length;
+    return `<span>${st.key} <b>${n}</b></span>`;
+  }).join('<span>·</span>');
+
+  // 搜索框：只更新变量，不整页重渲染，避免输入时丢焦点
+  wrap.querySelector('#jobSearchInput').oninput = (e)=>{
+    ui.jobSearch = e.target.value;
+    renderKanban();
+  };
+
+  // 常驻新增表单
+  const formEl = wrap.querySelector('#jobForm');
+  const f = ui.jobForm;
+  const stageOpts = STAGES.map(s=>`<option value="${s.key}" ${s.key===f.stage?'selected':''}>${s.key}</option>`).join('');
+  formEl.innerHTML = `
+    <div class="job-form-grid">
+      <div class="job-form-field"><label>公司</label><input id="jfCompany" placeholder="例如：字节跳动" value="${escapeAttr(f.company)}"></div>
+      <div class="job-form-field"><label>岗位</label><input id="jfPosition" placeholder="例如：产品运营" value="${escapeAttr(f.position)}"></div>
+    </div>
+    <div class="job-form-grid">
+      <div class="job-form-field"><label>标签（可选）</label><input id="jfTag" placeholder="例如：大厂 / 秋招" value="${escapeAttr(f.tag)}"></div>
+      <div class="job-form-field"><label>状态</label><select id="jfStage">${stageOpts}</select></div>
+    </div>
+    <div class="job-form-field" style="margin-bottom:10px;"><label>岗位链接（可选）</label><input id="jfLink" placeholder="JD链接" value="${escapeAttr(f.jdLink)}"></div>
+    <div class="job-form-field" style="margin-bottom:12px;"><label>备注（可选）</label><textarea id="jfNotes" placeholder="比如：内推投递，HR已收到简历">${escapeHtml(f.notes)}</textarea></div>
+    <div class="job-form-actions"><button id="jfSave">保存</button></div>
+  `;
+  // 表单里的输入只更新暂存对象，不触发重渲染
+  formEl.querySelector('#jfCompany').oninput = e=> f.company = e.target.value;
+  formEl.querySelector('#jfPosition').oninput = e=> f.position = e.target.value;
+  formEl.querySelector('#jfTag').oninput = e=> f.tag = e.target.value;
+  formEl.querySelector('#jfStage').onchange = e=> f.stage = e.target.value;
+  formEl.querySelector('#jfLink').oninput = e=> f.jdLink = e.target.value;
+  formEl.querySelector('#jfNotes').oninput = e=> f.notes = e.target.value;
+  formEl.querySelector('#jfSave').onclick = ()=>{
+    if(!f.company.trim()){ toast('先填一下公司名称'); return; }
+    state.jobs.push({
+      id:uid('j'), company:f.company.trim(), position:f.position.trim(),
+      tag:f.tag.trim(), stage:f.stage, jdLink:f.jdLink.trim(), notes:f.notes.trim(),
+      createdAt:Date.now(), updatedAt:Date.now()
     });
-    if(st.key==='待投递'){
-      const add = document.createElement('div'); add.className='add-job'; add.textContent='+ 新增意向';
-      add.onclick=()=>{ ui.modal={type:'newJob'}; render(); };
-      body.appendChild(add);
-    }
-    kb.appendChild(col);
-  });
+    saveState();
+    ui.jobForm = {company:'',position:'',tag:'',stage:'待投递',jdLink:'',notes:''};
+    render();
+  };
+
+  function renderKanban(){
+    const kb = wrap.querySelector('#kanban');
+    kb.innerHTML = '';
+    const q = ui.jobSearch.trim().toLowerCase();
+    STAGES.forEach(st=>{
+      const col = document.createElement('div'); col.className='kcol';
+      let jobs = state.jobs.filter(j=>j.stage===st.key);
+      if(q){ jobs = jobs.filter(j=> (j.company||'').toLowerCase().includes(q) || (j.position||'').toLowerCase().includes(q) || (j.notes||'').toLowerCase().includes(q)); }
+      col.innerHTML = `<div class="kcol-head" style="background:${st.color}">${st.key} · ${jobs.length}</div><div class="kcol-body"></div>`;
+      const body = col.querySelector('.kcol-body');
+      jobs.forEach(j=>{
+        const c = document.createElement('div'); c.className='jcard';
+        c.innerHTML = `
+          <div class="co">${escapeHtml(j.company)}</div>
+          <div class="role">${escapeHtml(j.position||'')}</div>
+          <div class="jcard-meta">
+            ${j.tag?`<span class="jcard-tag">${escapeHtml(j.tag)}</span>`:''}
+            ${j.jdLink?`<a class="jcard-link" href="${escapeAttr(j.jdLink)}" target="_blank" rel="noopener">查看JD ↗</a>`:''}
+          </div>`;
+        c.onclick=(e)=>{ if(e.target.closest('.jcard-link')) return; ui.modal={type:'editJob', job:j}; render(); };
+        body.appendChild(c);
+      });
+      kb.appendChild(col);
+    });
+  }
+  renderKanban();
+
   return wrap;
 }
 
-/* ---------- 工作日志 · 时间轴 ---------- */
+/* ---------- 工作日志回顾 ---------- */
+function currentWeekRange(ts){
+  const d = new Date(ts);
+  const day = d.getDay();
+  const diffToMon = (day===0?-6:1-day);
+  const mon = new Date(d); mon.setDate(d.getDate()+diffToMon); mon.setHours(0,0,0,0);
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+  const fmt = (x)=> `${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  return { start:mon, end:sun, label:`${fmt(mon)} ~ ${fmt(sun)}` };
+}
+
+function addWorklogItem(folderId, tag, text, todos, images, weekRange){
+  state.items.push({ id:uid('i'), type:'note', folderId, title:null, rawText:text||'', tag:tag||null,
+    todos: todos||null, weekRange: weekRange||null, images: images||[], timestamp:Date.now(), updatedAt:Date.now() });
+  saveState();
+}
+
+async function aiSummarizeWeek(items){
+  const content = items.map(i=>'- '+(i.rawText||'')).join('\n');
+  const prompt = `以下是本周的工作日报条目，请帮我汇总成一份简洁的周报，分点说明本周完成的工作，如果内容里能看出后续安排，最后加一句"下周计划"。只返回周报正文，不要任何其他说明文字或markdown符号。\n\n${content}`;
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:600, messages:[{role:'user', content:prompt}] })
+    });
+    const data = await resp.json();
+    return (data.content||[]).map(c=>c.text||'').join('').trim();
+  }catch(e){
+    return '汇总失败，请稍后重试，或直接手写周报。';
+  }
+}
+
 function renderWorklogView(){
   const folder = state.folders.find(f=>f.isWorklog);
-  const list = state.items.filter(i=>i.folderId===folder.id).sort((a,b)=>(b.timestamp)-(a.timestamp));
+  let list = state.items.filter(i=>i.folderId===folder.id);
+  if(ui.wlFilterTag && ui.wlFilterTag!=='全部'){ list = list.filter(i=>i.tag===ui.wlFilterTag); }
+  list = list.slice().sort((a,b)=>(b.timestamp)-(a.timestamp));
   const groups = {};
   list.forEach(i=>{
     const d = new Date(i.timestamp);
     const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     (groups[key] = groups[key]||[]).push(i);
   });
+
   const wrap = document.createElement('div');
   wrap.innerHTML = `
-    <div class="view-head"><span class="view-title">工作日志 · 时间轴</span><span class="view-count">${list.length} 条</span></div>
-    <div class="view-hint">同一份内容，按日期分组展示，与「工作日志」文件夹同源</div>
-    <div class="capture">
-      <div class="capture-row"><textarea id="wlText" placeholder="记今天的一句话，会自动归到「工作日志」..."></textarea></div>
-      <div class="capture-actions"><button class="primary" id="wlBtn">速记</button></div>
-    </div>
+    <div class="view-head"><span class="view-title">工作日志回顾</span><span class="view-count">${list.length} 条</span></div>
+    <div class="view-hint">按时间线回看你写过的日志 · 与「工作日志」文件夹同源</div>
+    <div class="wl-tags" id="wlTags"></div>
+    <div id="wlComposeSlot"></div>
     <div id="wlGroups"></div>
   `;
-  wrap.querySelector('#wlBtn').onclick=()=>{
-    const ta = wrap.querySelector('#wlText');
-    if(!ta.value.trim()) return;
-    addItem('note', folder.id, null, ta.value.trim(), []);
-    render();
-  };
+
+  const isWeeklyMode = ui.wlFilterTag === '周报';
+
+  // 标签筛选：点击标签栏同时决定下方输入区显示"速记表单"还是"周报编写区"，
+  // 点普通标签时也把速记表单的标签同步过去，不用再去下拉菜单里重复选一次
+  const tagsEl = wrap.querySelector('#wlTags');
+  ['全部',...WORKLOG_TAGS].forEach(tg=>{
+    const chip = document.createElement('span');
+    chip.className='chip'+(ui.wlFilterTag===tg?' active':'');
+    chip.textContent=tg;
+    chip.onclick=()=>{
+      ui.wlFilterTag = tg;
+      if(tg!=='全部' && tg!=='周报') ui.wlTag = tg;
+      render();
+    };
+    tagsEl.appendChild(chip);
+  });
+
+  const composeSlot = wrap.querySelector('#wlComposeSlot');
+
+  if(isWeeklyMode){
+    // 周报编写区（点顶部"周报"标签后直接切换到这里，不再单独隔离在列表下方）
+    const wk = currentWeekRange(Date.now());
+    const weekDailies = state.items.filter(i=>i.folderId===folder.id && i.tag==='日报' && i.timestamp>=wk.start.getTime() && i.timestamp<=wk.end.getTime());
+    const weekCard = document.createElement('div');
+    weekCard.className='week-card';
+    weekCard.innerHTML = `
+      <div class="week-head">
+        <span class="entry-tag" style="background:var(--cat-worklog)">周报</span>
+        <span class="entry-time">${wk.label}</span>
+        <button class="ghost-btn" id="aiSumBtn" style="margin-left:auto;">✨ AI 一键汇总</button>
+      </div>
+      <div id="weekWarn"></div>
+      <textarea id="weekText" placeholder="在这里写你的周报，或点右上角让AI根据本周日报自动生成初稿">${escapeHtml(ui.weeklyDraft||'')}</textarea>
+      <div class="job-form-actions" style="margin-top:8px;"><button id="weekSave">保存周报</button></div>
+    `;
+    composeSlot.appendChild(weekCard);
+    weekCard.querySelector('#weekText').oninput = e=> ui.weeklyDraft = e.target.value;
+    weekCard.querySelector('#aiSumBtn').onclick = async ()=>{
+      if(weekDailies.length===0){
+        weekCard.querySelector('#weekWarn').innerHTML = `<div class="week-warn">这周（${wk.label}）还没有日报记录，没法生成汇总。先去记几条日报，或者直接手写周报。</div>`;
+        return;
+      }
+      const btn = weekCard.querySelector('#aiSumBtn');
+      btn.disabled=true; btn.textContent='汇总中...';
+      const summary = await aiSummarizeWeek(weekDailies);
+      ui.weeklyDraft = summary;
+      render();
+    };
+    weekCard.querySelector('#weekSave').onclick = ()=>{
+      if(!ui.weeklyDraft || !ui.weeklyDraft.trim()) return;
+      addWorklogItem(folder.id, '周报', ui.weeklyDraft.trim(), null, [], wk.label);
+      ui.weeklyDraft='';
+      ui.wlFilterTag='全部';
+      render();
+    };
+  } else {
+    // 普通速记表单（会议纪要/待办/日报/全部）
+    const captureEl = document.createElement('div');
+    captureEl.className='capture'; captureEl.id='wlCapture';
+    captureEl.innerHTML = `
+      <div class="capture-row"><textarea id="wlText" placeholder="记今天做了什么，选个标签更好找..."></textarea></div>
+      <div class="drop-hint">松开鼠标即可添加图片</div>
+      <div class="img-thumbs" id="wlThumbs"></div>
+      <div id="wlHint" style="font-size:11px;color:var(--ink-soft);padding:0 6px 4px;display:none;">选择"待办"标签时，每一行会变成一条可勾选的待办</div>
+      <div class="capture-actions">
+        <select id="wlTagSel"></select>
+        <label class="icon-btn" title="添加图片">📷<input type="file" id="wlImgInput" accept="image/*" multiple style="display:none"></label>
+        <button class="primary" id="wlBtn">速记</button>
+      </div>
+    `;
+    composeSlot.appendChild(captureEl);
+
+    // 标签选择 + 待办占位提示
+    const tagSel = captureEl.querySelector('#wlTagSel');
+    tagSel.innerHTML = WORKLOG_TAGS.filter(t=>t!=='周报').map(tg=>`<option value="${tg}" ${tg===ui.wlTag?'selected':''}>${tg}</option>`).join('');
+    const wlText = captureEl.querySelector('#wlText');
+    const wlHint = captureEl.querySelector('#wlHint');
+    function syncTagUi(){
+      wlHint.style.display = ui.wlTag==='待办' ? 'block' : 'none';
+      wlText.placeholder = ui.wlTag==='待办' ? '一行一条待办，比如：\n发送会议邀请\n整理需求文档' : '记今天做了什么，选个标签更好找...';
+    }
+    tagSel.onchange = e=>{ ui.wlTag = e.target.value; syncTagUi(); };
+    syncTagUi();
+
+    // 图片上传
+    const thumbs = captureEl.querySelector('#wlThumbs');
+    function renderWlThumbs(){
+      thumbs.innerHTML='';
+      ui.wlPendingImages.forEach((src,idx)=>{
+        const d=document.createElement('div'); d.className='img-thumb';
+        d.innerHTML=`<img src="${src}"><button class="rm">×</button>`;
+        d.querySelector('.rm').onclick=()=>{ ui.wlPendingImages.splice(idx,1); renderWlThumbs(); };
+        thumbs.appendChild(d);
+      });
+    }
+    renderWlThumbs();
+    captureEl.querySelector('#wlImgInput').onchange = async (e)=>{
+      for(const f of e.target.files){ ui.wlPendingImages.push(await compressImage(f)); }
+      renderWlThumbs();
+    };
+    attachImageDrop(captureEl, async (files)=>{
+      for(const f of files){ ui.wlPendingImages.push(await compressImage(f)); }
+      renderWlThumbs();
+    });
+
+    captureEl.querySelector('#wlBtn').onclick=()=>{
+      const text = wlText.value.trim();
+      if(!text && ui.wlPendingImages.length===0) return;
+      if(ui.wlTag==='待办'){
+        const todos = text.split('\n').map(t=>t.trim()).filter(Boolean).map(t=>({text:t, done:false}));
+        addWorklogItem(folder.id, '待办', '', todos, ui.wlPendingImages);
+      } else {
+        addWorklogItem(folder.id, ui.wlTag, text, null, ui.wlPendingImages);
+      }
+      ui.wlPendingImages=[];
+      render();
+    };
+  }
+
   const gEl = wrap.querySelector('#wlGroups');
   const keys = Object.keys(groups).sort().reverse();
   if(keys.length===0){ gEl.innerHTML='<div class="empty">工作日志还是空的，写下今天做了什么吧</div>'; }
@@ -629,16 +933,44 @@ function renderWorklogView(){
     const d = new Date(k);
     const weekday = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
     g.innerHTML = `<div class="day-label">${k.slice(5).replace('-','月')}日 · ${weekday}</div>`;
-    const listWrap = document.createElement('div'); listWrap.style.display='flex'; listWrap.style.flexDirection='column'; listWrap.style.gap='6px';
-    groups[k].forEach(item=>{
-      const row = document.createElement('div'); row.className='entry'; row.style.padding='9px 12px'; row.style.borderLeftColor=colorFor(folder.id);
-      row.innerHTML = `<div class="entry-body">${escapeHtml(item.rawText||'')}</div>`;
-      listWrap.appendChild(row);
-    });
+    const listWrap = document.createElement('div'); listWrap.style.display='flex'; listWrap.style.flexDirection='column'; listWrap.style.gap='8px';
+    groups[k].forEach(item=> listWrap.appendChild(renderWlEntry(item)));
     g.appendChild(listWrap);
     gEl.appendChild(g);
   });
   return wrap;
+}
+
+function renderWlEntry(item){
+  const color = 'var(--cat-worklog)';
+  const d = new Date(item.updatedAt||item.timestamp);
+  const timeStr = `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const div = document.createElement('div'); div.className='entry'; div.style.padding='10px 14px'; div.style.borderLeftColor=color;
+  let bodyHtml;
+  if(item.tag==='待办' && item.todos && item.todos.length){
+    bodyHtml = item.todos.map((td,idx)=>`<div class="todo-row"><input type="checkbox" data-idx="${idx}" ${td.done?'checked':''}><span class="${td.done?'todo-done':''}">${escapeHtml(td.text)}</span></div>`).join('');
+  } else {
+    bodyHtml = `<div class="entry-body">${escapeHtml(item.rawText||'')}</div>`;
+  }
+  div.innerHTML = `
+    <div class="entry-top">
+      <span class="entry-time">${timeStr}</span>
+      ${item.tag?`<span class="entry-tag" style="background:${color}">${escapeHtml(item.tag)}</span>`:''}
+      ${item.weekRange?`<span class="entry-folder">${escapeHtml(item.weekRange)}</span>`:''}
+      <span class="entry-actions"><span data-act="del">删除</span></span>
+    </div>
+    ${bodyHtml}
+    ${item.images&&item.images.length?`<div class="entry-imgs">${item.images.map(s=>`<img src="${s}">`).join('')}</div>`:''}
+  `;
+  div.querySelector('[data-act="del"]').onclick=()=>{
+    if(confirm('删除这条内容？')){ state.items=state.items.filter(i=>i.id!==item.id); saveState(); render(); }
+  };
+  if(item.tag==='待办' && item.todos){
+    div.querySelectorAll('.todo-row input[type=checkbox]').forEach(cb=>{
+      cb.onchange = ()=>{ item.todos[+cb.dataset.idx].done = cb.checked; saveState(); render(); };
+    });
+  }
+  return div;
 }
 
 /* ---------- 课程记录 ---------- */
@@ -648,8 +980,8 @@ function renderCoursesView(){
   }
   const wrap = document.createElement('div');
   wrap.innerHTML = `
-    <div class="view-head"><span class="view-title">课程记录</span><span class="view-count">${state.courses.length} 门课程</span></div>
-    <div class="view-hint">分步骤图文教程录入 · 一键生成思维导图</div>
+    <div class="view-head"><span class="view-title">课程整理</span><span class="view-count">${state.courses.length} 门课程</span></div>
+    <div class="view-hint">分步录入或整段粘贴，AI 帮你整理 · 一键生成思维导图</div>
     <div class="newdoc-row"><span class="ghost-btn" id="addCourseBtn">+ 新建课程</span></div>
     <div class="course-grid" id="courseGrid"></div>
   `;
@@ -679,7 +1011,7 @@ function renderCourseDetail(courseId){
     <div id="stepList"></div>
   `;
   wrap.querySelector('#backBtn').onclick=()=>{ ui.courseDetail=null; render(); };
-  wrap.querySelector('#addStepBtn').onclick=()=>{ ui.modal={type:'newStep', courseId, title:'', content:'', image:null}; render(); };
+  wrap.querySelector('#addStepBtn').onclick=()=>{ ui.modal={type:'stepMode', courseId}; render(); };
   wrap.querySelector('#genMindmap').onclick=()=>{
     const slot = wrap.querySelector('#mindmapSlot');
     slot.innerHTML = '';
@@ -688,12 +1020,18 @@ function renderCourseDetail(courseId){
     slot.appendChild(mm);
   };
   const listEl = wrap.querySelector('#stepList');
-  if(steps.length===0){ listEl.innerHTML='<div class="empty">还没有步骤记录</div>'; }
+  if(steps.length===0){
+    listEl.innerHTML = '';
+    listEl.appendChild(courseEmptyGuide(courseId));
+  }
   steps.forEach(s=>{
     const b = document.createElement('div'); b.className='step-block';
+    const imgsHtml = (s.images && s.images.length)
+      ? `<div class="entry-imgs">${s.images.map(x=>`<img class="step-img" src="${x}">`).join('')}</div>`
+      : (s.image ? `<img class="step-img" src="${s.image}">` : '');
     b.innerHTML = `
       <div class="step-title">${escapeHtml(s.title)}</div>
-      ${s.image?`<img class="step-img" src="${s.image}">`:''}
+      ${imgsHtml}
       <div class="step-content">${escapeHtml(s.content||'')}</div>
       <span class="ghost-btn" data-del>删除</span>
     `;
@@ -703,6 +1041,26 @@ function renderCourseDetail(courseId){
     listEl.appendChild(b);
   });
   return wrap;
+}
+
+function courseEmptyGuide(courseId){
+  const div = document.createElement('div');
+  div.className='course-guide';
+  div.innerHTML = `
+    <div class="guide-steps">
+      <div class="guide-step"><div class="gs-num">1</div><div class="gs-t">添加功能点</div><div class="gs-d">比如"变量与循环"</div></div>
+      <div class="guide-step"><div class="gs-num">2</div><div class="gs-t">配图文步骤</div><div class="gs-d">截图+文字说明</div></div>
+      <div class="guide-step"><div class="gs-num">3</div><div class="gs-t">生成思维导图</div><div class="gs-d">一键整理成图</div></div>
+    </div>
+    <div class="guide-example">
+      <div class="ge-label">示例功能点</div>
+      <div class="ge-title">变量与数据类型</div>
+      <div class="ge-desc">步骤1：定义变量 → 步骤2：类型转换 → 步骤3：练习题</div>
+    </div>
+    <button class="primary" id="guideAddBtn" style="width:100%;">+ 添加第一个功能点</button>
+  `;
+  div.querySelector('#guideAddBtn').onclick=()=>{ ui.modal={type:'stepMode', courseId}; render(); };
+  return div;
 }
 
 /* ===================== 弹窗 ===================== */
@@ -722,6 +1080,20 @@ function renderModal(){
       if(!name) return;
       state.folders.push({id:uid('f'), name, builtin:false});
       saveState(); closeModal();
+    };
+  }
+  else if(t==='confirmSuggestFolder'){
+    m.innerHTML = `<h3>新建文件夹</h3><input id="mfName" value="${escapeAttr(ui.modal.name)}" placeholder="文件夹名称"><div class="modal-actions"><button id="mCancel">取消</button><button class="pri" id="mOk">创建并归入</button></div>`;
+    const nameInput = m.querySelector('#mfName');
+    setTimeout(()=>{ nameInput.focus(); nameInput.select(); }, 0);
+    m.querySelector('#mCancel').onclick=closeModal;
+    m.querySelector('#mOk').onclick=()=>{
+      const name = nameInput.value.trim();
+      if(!name) return;
+      const nf = {id:uid('f'), name, builtin:false};
+      state.folders.push(nf);
+      addItem('note', nf.id, null, ui.modal.text, ui.modal.images);
+      closeModal();
     };
   }
   else if(t==='pickFolder'){
@@ -788,14 +1160,18 @@ function renderModal(){
     const stageOpts = STAGES.map(s=>`<option value="${s.key}" ${s.key===job.stage?'selected':''}>${s.key}</option>`).join('');
     m.innerHTML = `<h3>${escapeHtml(job.company)}</h3>
       <input id="mRole" value="${escapeAttr(job.position||'')}" placeholder="岗位名称">
+      <input id="mTag" value="${escapeAttr(job.tag||'')}" placeholder="标签（可选）">
       <select id="mStage">${stageOpts}</select>
+      <input id="mLink" value="${escapeAttr(job.jdLink||'')}" placeholder="岗位链接（可选）">
       <textarea id="mNotes" placeholder="备注">${escapeHtml(job.notes||'')}</textarea>
       <div class="modal-actions"><button id="mDel" style="color:var(--danger)">删除</button><button id="mCancel">取消</button><button class="pri" id="mOk">保存</button></div>`;
     m.querySelector('#mCancel').onclick=closeModal;
     m.querySelector('#mDel').onclick=()=>{ state.jobs=state.jobs.filter(j=>j.id!==job.id); saveState(); closeModal(); };
     m.querySelector('#mOk').onclick=()=>{
       job.position = m.querySelector('#mRole').value.trim();
+      job.tag = m.querySelector('#mTag').value.trim();
       job.stage = m.querySelector('#mStage').value;
+      job.jdLink = m.querySelector('#mLink').value.trim();
       job.notes = m.querySelector('#mNotes').value.trim();
       job.updatedAt = Date.now();
       saveState(); closeModal();
@@ -809,6 +1185,62 @@ function renderModal(){
       if(!name) return;
       const c = {id:uid('c'), name, createdAt:Date.now()};
       state.courses.push(c); saveState(); ui.courseDetail=c.id; closeModal();
+    };
+  }
+  else if(t==='stepMode'){
+    m.innerHTML = `<h3>怎么记录这节课</h3>
+      <div class="opt-row" id="modeStep"><b style="display:block;font-size:13px;">分步骤录入</b><span style="font-size:11px;color:var(--ink-soft);">一步一步细写，适合重点复习</span></div>
+      <div class="opt-row" id="modeQuick"><b style="display:block;font-size:13px;">整节课快速录入</b><span style="font-size:11px;color:var(--ink-soft);">一股脑粘贴/拍照，AI帮你整理</span></div>
+      <div class="modal-actions"><button id="mCancel">取消</button></div>`;
+    const courseId = ui.modal.courseId;
+    m.querySelector('#mCancel').onclick=closeModal;
+    m.querySelector('#modeStep').onclick=()=>{ ui.modal={type:'newStep', courseId, title:'', content:'', image:null}; render(); };
+    m.querySelector('#modeQuick').onclick=()=>{ ui.modal={type:'quickCourseAdd', courseId}; render(); };
+  }
+  else if(t==='quickCourseAdd'){
+    const courseId = ui.modal.courseId;
+    m.innerHTML = `<h3>整节课快速录入</h3>
+      <textarea id="qContent" placeholder="把这节课的笔记、板书、老师说的重点都粘贴/写在这里，不用管格式" style="min-height:120px"></textarea>
+      <label class="icon-btn" style="width:auto;padding:0 10px;display:inline-flex;gap:6px;">📷 添加图片<input type="file" id="qImg" accept="image/*" multiple style="display:none"></label>
+      <div class="drop-hint" style="display:block;margin-top:6px;">也可以直接拖拽图片到这里，或粘贴截图</div>
+      <div class="img-thumbs" id="qThumbs" style="margin-top:8px"></div>
+      <div class="modal-actions"><button id="mCancel">取消</button><button id="mSaveWhole">直接保存为一条整体记录</button><button class="pri" id="mAiSplit">✨ AI 自动拆成功能点</button></div>`;
+    let qImgs = [];
+    const qThumbs = m.querySelector('#qThumbs');
+    function renderQThumbs(){
+      qThumbs.innerHTML='';
+      qImgs.forEach((src,idx)=>{
+        const d=document.createElement('div'); d.className='img-thumb';
+        d.innerHTML=`<img src="${src}"><button class="rm">×</button>`;
+        d.querySelector('.rm').onclick=()=>{ qImgs.splice(idx,1); renderQThumbs(); };
+        qThumbs.appendChild(d);
+      });
+    }
+    m.querySelector('#qImg').onchange = async (e)=>{ for(const f of e.target.files){ qImgs.push(await compressImage(f)); } renderQThumbs(); };
+    attachImageDrop(m, async (files)=>{ for(const f of files){ qImgs.push(await compressImage(f)); } renderQThumbs(); });
+    m.querySelector('#mCancel').onclick=closeModal;
+    m.querySelector('#mSaveWhole').onclick=()=>{
+      const text = m.querySelector('#qContent').value.trim();
+      if(!text && qImgs.length===0) return;
+      const order = state.courseSteps.filter(s=>s.courseId===courseId).length;
+      state.courseSteps.push({id:uid('st'), courseId, title:'整体笔记 · '+new Date().toLocaleDateString('zh-CN'), content:text, image:qImgs[0]||null, images:qImgs, order, createdAt:Date.now()});
+      saveState(); closeModal();
+    };
+    m.querySelector('#mAiSplit').onclick=async ()=>{
+      const text = m.querySelector('#qContent').value.trim();
+      if(!text){ toast('先粘贴点内容再拆分'); return; }
+      const btn = m.querySelector('#mAiSplit'); btn.disabled=true; btn.textContent='拆分中...';
+      const steps = await aiSplitCourseContent(text);
+      let order = state.courseSteps.filter(s=>s.courseId===courseId).length;
+      if(!steps || steps.length===0){
+        toast('拆分失败，已为你保存为整体记录');
+        state.courseSteps.push({id:uid('st'), courseId, title:'整体笔记 · '+new Date().toLocaleDateString('zh-CN'), content:text, image:qImgs[0]||null, images:qImgs, order, createdAt:Date.now()});
+        saveState(); closeModal(); return;
+      }
+      steps.forEach((s,idx)=>{
+        state.courseSteps.push({id:uid('st'), courseId, title:s.title||('功能点'+(idx+1)), content:s.content||'', image: idx===0?(qImgs[0]||null):null, order:order++, createdAt:Date.now()});
+      });
+      saveState(); closeModal();
     };
   }
   else if(t==='newStep'){
