@@ -162,24 +162,55 @@ button,input,textarea,select{font-family:inherit;}
 .todo-row input{accent-color:var(--accent);}
 .todo-done{text-decoration:line-through;color:var(--ink-soft);}
 
-/* Course guide */
-.course-guide{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;}
-.guide-steps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
-.guide-step{background:var(--paper);border-radius:8px;padding:10px;text-align:center;}
-.gs-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;}
-.gs-t{font-size:12px;font-weight:600;}
-.gs-d{font-size:10.5px;color:var(--ink-soft);margin-top:2px;}
-.guide-example{border:1px dashed var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px;opacity:0.75;}
-.ge-label{font-size:10px;color:var(--ink-soft);margin-bottom:4px;}
-.ge-title{font-size:13px;font-weight:600;}
-.ge-desc{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+/* 课堂速记：不选课程直接写，AI 判断归属；暂存区放不确定归属的记录 */
+.course-log{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(30,42,38,0.04);}
+.course-log-head{font-size:13px;font-weight:600;margin-bottom:2px;}
+.course-log-sub{font-size:11.5px;color:var(--ink-soft);margin-bottom:10px;}
+.course-log textarea{width:100%;border:1px solid var(--line);border-radius:9px;font-family:'Source Serif 4',serif;font-size:14px;color:var(--ink);padding:10px;min-height:60px;line-height:1.5;outline:none;box-sizing:border-box;resize:vertical;}
+.course-log textarea:focus{border-color:var(--accent);}
+.course-log .img-thumbs{padding:0;margin-top:8px;}
+.course-log-actions{display:flex;align-items:center;gap:6px;margin-top:8px;}
+.stash-row{border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.stash-text{font-size:12.5px;color:var(--ink);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.stash-actions{display:flex;gap:6px;flex-shrink:0;}
 
-/* Courses */
-.course-grid{display:flex;flex-direction:column;gap:10px;}
-.course-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer;}
+/* Course capture: 页面内嵌的知识点录入卡片（替代原来的三步引导+二选一弹窗） */
+.course-capture{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:16px;box-shadow:0 1px 3px rgba(30,42,38,0.05);transition:border-color .12s,background .12s;}
+.course-capture.drag-over{border-color:var(--accent);background:#EAF0F7;}
+.cc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.cc-head-title{font-size:15px;font-weight:600;}
+.cc-toggle{font-size:12px;color:var(--ink-soft);cursor:pointer;border:1px solid var(--line);border-radius:7px;padding:5px 10px;background:transparent;}
+.cc-toggle:hover{border-color:var(--accent);color:var(--accent);}
+.cc-hint{font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;}
+.course-capture textarea, .course-capture input[type=text]{width:100%;border:1px solid var(--line);border-radius:9px;font-family:'Source Serif 4',serif;font-size:15px;color:var(--ink);padding:14px;line-height:1.6;outline:none;box-sizing:border-box;}
+.course-capture textarea{min-height:160px;resize:vertical;}
+.course-capture textarea:focus, .course-capture input[type=text]:focus{border-color:var(--accent);}
+.cc-title-input{margin-bottom:10px;}
+.cc-imgbar{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.cc-imgbar .ghost-btn{font-size:12.5px;padding:7px 14px;}
+.cc-hintline{font-size:11.5px;color:var(--ink-soft);}
+.course-capture .img-thumbs{margin-top:10px;padding:0;}
+.course-capture .img-thumb{width:64px;height:64px;}
+.cc-actions{display:flex;gap:12px;margin-top:18px;}
+.cc-actions button{flex:1;padding:11px;border-radius:9px;font-size:13.5px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);}
+.cc-actions button:hover{border-color:var(--accent);}
+.cc-actions button.pri{background:var(--ink);color:var(--paper);border:none;}
+.cc-actions button.pri:hover{background:var(--accent);}
+.cc-actions button:disabled{background:#B7BDB8;color:#fff;cursor:default;border:none;}
+.cc-switch-row{text-align:right;margin-top:10px;}
+.cc-switch-link{font-size:12.5px;color:var(--accent);cursor:pointer;}
+.cc-collapsed-bar{border:1px dashed var(--line);border-radius:10px;padding:12px;text-align:center;font-size:13px;color:var(--ink-soft);cursor:pointer;margin-bottom:16px;}
+.cc-collapsed-bar:hover{border-color:var(--accent);color:var(--accent);}
+
+.course-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer;position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
 .course-card:hover{border-color:var(--accent);}
 .course-card .cname{font-size:14.5px;font-weight:600;}
 .course-card .ccount{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+.course-card .cdel{font-size:11px;color:var(--ink-soft);flex-shrink:0;padding:2px 6px;border-radius:5px;}
+.course-card .cdel:hover{color:#d33;background:#fdeaea;}
+
+/* Courses */
+.course-grid{display:flex;flex-direction:column;gap:10px;}
 .step-block{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
 .step-title{font-size:14px;font-weight:600;margin-bottom:6px;}
 .step-content{font-size:12.5px;color:var(--ink-soft);line-height:1.6;white-space:pre-wrap;margin-bottom:8px;}
@@ -236,11 +267,20 @@ const CAT_COLORS = {f_job:'var(--cat-job)',f_company:'var(--cat-company)',f_inte
 function colorFor(id){ return CAT_COLORS[id] || 'var(--cat-custom)'; }
 function uid(p){ return p+'_'+Math.random().toString(36).slice(2,9); }
 
-let state = { folders: JSON.parse(JSON.stringify(BUILTIN_FOLDERS)), items: [], jobs: [], courses: [], courseSteps: [] };
+let state = { folders: JSON.parse(JSON.stringify(BUILTIN_FOLDERS)), items: [], jobs: [], courses: [], courseSteps: [], courseStash: [] };
 let ui = { view:'all', pendingImages:[], suggestion:null, modal:null, search:'',
   jobSearch:'', jobForm:{company:'',position:'',tag:'',stage:'待投递',jdLink:'',notes:''},
   renamingFolderId:null,
-  wlFilterTag:'全部', wlTag:'会议纪要', wlPendingImages:[], weeklyDraft:'' };
+  wlFilterTag:'全部', wlTag:'会议纪要', wlPendingImages:[], weeklyDraft:'',
+  ccOpen:true, ccMode:'quick', ccText:'', ccImages:[], ccTitle:'', ccContent:'', ccStepImage:null,
+  clText:'', clImages:[], clSuggestion:null };
+
+function resetCourseCapture(courseId){
+  const hasSteps = state.courseSteps.some(s=>s.courseId===courseId);
+  ui.ccOpen = !hasSteps;
+  ui.ccMode = 'quick';
+  ui.ccText=''; ui.ccImages=[]; ui.ccTitle=''; ui.ccContent=''; ui.ccStepImage=null;
+}
 
 async function loadState(){
   try{
@@ -252,6 +292,7 @@ async function loadState(){
       state.jobs = d.jobs || [];
       state.courses = d.courses || [];
       state.courseSteps = d.courseSteps || [];
+      state.courseStash = d.courseStash || [];
     }
   }catch(e){ /* 首次使用，没有历史数据 */ }
   render();
@@ -335,7 +376,7 @@ async function aiClassify(text){
 
 /* ===================== AI 课程内容拆分 ===================== */
 async function aiSplitCourseContent(text){
-  const prompt = `以下是一节课的完整笔记内容，请帮我拆分成几个独立的"功能点"（知识点/操作步骤模块）。每个功能点包含一个简短标题(title)和对应内容(content)。只返回JSON数组，格式如[{"title":"...","content":"..."}]，不要任何其他文字。\n\n笔记内容：\n${text}`;
+  const prompt = `以下是一节课的完整笔记内容，请帮我拆分成几个独立的"知识点"（操作步骤/概念模块）。每个知识点包含一个简短标题(title)和对应内容(content)。只返回JSON数组，格式如[{"title":"...","content":"..."}]，不要任何其他文字。\n\n笔记内容：\n${text}`;
   try{
     const resp = await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -346,6 +387,24 @@ async function aiSplitCourseContent(text){
     const clean = raw.replace(/```json|```/g,'').trim();
     return JSON.parse(clean);
   }catch(e){ return null; }
+}
+
+/* ===================== AI 判断课堂速记像哪门课 ===================== */
+async function aiClassifyCourseNote(text){
+  const courseList = state.courses.map(c=>({id:c.id, name:c.name}));
+  const prompt = `你是课堂笔记分类助手。已有课程列表（JSON）：${JSON.stringify(courseList)}\n用户刚写了一条课堂速记，还没指定属于哪门课："${text}"\n请判断这条内容最适合归入哪门已有课程。如果有合适的，只返回 {"courseId":"对应id"}；如果和所有课程都不太像，返回 {"courseId":null,"suggestedName":"一个简短贴切的新课程名"}。只返回JSON，不要任何其他文字。`;
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:200, messages:[{role:'user', content:prompt}] })
+    });
+    const data = await resp.json();
+    const raw = (data.content||[]).map(c=>c.text||'').join('');
+    const clean = raw.replace(/```json|```/g,'').trim();
+    return JSON.parse(clean);
+  }catch(e){
+    return {courseId:null, suggestedName:null};
+  }
 }
 
 /* ===================== 渲染 ===================== */
@@ -399,7 +458,7 @@ function renderSidebar(){
       </div>
     </div>
     <div class="data-mgmt">
-      <div class="data-stat" id="storageStat">共 ${state.items.length + state.jobs.length + state.courseSteps.length} 条内容</div>
+      <div class="data-stat" id="storageStat">共 ${state.items.length + state.jobs.length + state.courseSteps.length + state.courseStash.length} 条内容</div>
       <div class="data-btn" id="exportJsonBtn">⬇ 导出备份（.json）</div>
       <div class="data-btn" id="importJsonBtn">⬆ 导入备份</div>
       <div class="data-btn" id="exportPdfBtn">📄 导出为 PDF</div>
@@ -981,21 +1040,173 @@ function renderCoursesView(){
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <div class="view-head"><span class="view-title">课程整理</span><span class="view-count">${state.courses.length} 门课程</span></div>
-    <div class="view-hint">分步录入或整段粘贴，AI 帮你整理 · 一键生成思维导图</div>
+    <div class="view-hint">按课程整理笔记和截图，AI 帮你拆重点、生成思维导图</div>
+    <div id="courseLogSlot"></div>
+    <div id="stashSlot"></div>
     <div class="newdoc-row"><span class="ghost-btn" id="addCourseBtn">+ 新建课程</span></div>
     <div class="course-grid" id="courseGrid"></div>
   `;
   wrap.querySelector('#addCourseBtn').onclick=()=>{ ui.modal={type:'newCourse'}; render(); };
+
+  renderCourseLog(wrap.querySelector('#courseLogSlot'));
+  renderCourseStash(wrap.querySelector('#stashSlot'));
+
   const grid = wrap.querySelector('#courseGrid');
   if(state.courses.length===0){ grid.innerHTML='<div class="empty">还没有课程，新建一个开始记录吧</div>'; }
   state.courses.forEach(c=>{
     const n = state.courseSteps.filter(s=>s.courseId===c.id).length;
     const card = document.createElement('div'); card.className='course-card';
-    card.innerHTML = `<div class="cname">${escapeHtml(c.name)}</div><div class="ccount">${n} 个功能点</div>`;
-    card.onclick=()=>{ ui.courseDetail = c.id; render(); };
+    card.innerHTML = `<div><div class="cname">${escapeHtml(c.name)}</div><div class="ccount">${n} 个知识点</div></div><span class="cdel" data-del>删除</span>`;
+    card.onclick=(e)=>{
+      if(e.target.closest('[data-del]')) return;
+      ui.courseDetail = c.id; resetCourseCapture(c.id); render();
+    };
+    card.querySelector('[data-del]').onclick=(e)=>{
+      e.stopPropagation();
+      if(confirm(`删除课程「${c.name}」？里面的 ${n} 个知识点也会一并删除`)){
+        state.courses = state.courses.filter(x=>x.id!==c.id);
+        state.courseSteps = state.courseSteps.filter(s=>s.courseId!==c.id);
+        saveState(); render();
+      }
+    };
     grid.appendChild(card);
   });
   return wrap;
+}
+
+/* 课堂速记：不用先选课程，写完AI判断像哪门课，一步确认；判断不了可以先存到暂存区 */
+function renderCourseLog(slot){
+  const box = document.createElement('div');
+  box.className='course-log';
+  box.innerHTML = `
+    <div class="course-log-head">课堂速记</div>
+    <div class="course-log-sub">不确定属于哪门课也没关系，先写下来，AI 帮你判断</div>
+    <textarea id="clText" placeholder="老师刚讲的这段，先记下来...">${escapeHtml(ui.clText||'')}</textarea>
+    <div class="img-thumbs" id="clThumbs"></div>
+    <div class="course-log-actions">
+      <label class="icon-btn" title="添加图片">📷<input type="file" id="clImg" accept="image/*" multiple style="display:none"></label>
+      <button class="primary" id="clBtn" style="margin-left:auto;">速记</button>
+    </div>
+    <div id="clSuggestSlot"></div>
+  `;
+  const thumbs = box.querySelector('#clThumbs');
+  function renderThumbs(){
+    thumbs.innerHTML='';
+    ui.clImages.forEach((src,idx)=>{
+      const d=document.createElement('div'); d.className='img-thumb';
+      d.innerHTML=`<img src="${src}"><button class="rm">×</button>`;
+      d.querySelector('.rm').onclick=()=>{ ui.clImages.splice(idx,1); renderThumbs(); };
+      thumbs.appendChild(d);
+    });
+  }
+  renderThumbs();
+  box.querySelector('#clText').oninput = e=> ui.clText = e.target.value;
+  box.querySelector('#clImg').onchange = async (e)=>{ for(const f of e.target.files){ ui.clImages.push(await compressImage(f)); } renderThumbs(); };
+  attachImageDrop(box, async (files)=>{ for(const f of files){ ui.clImages.push(await compressImage(f)); } renderThumbs(); });
+
+  box.querySelector('#clBtn').onclick = async ()=>{
+    const text = ui.clText.trim();
+    if(!text && ui.clImages.length===0) return;
+    const btn = box.querySelector('#clBtn');
+    btn.disabled=true; btn.textContent='判断中...';
+    if(state.courses.length===0){
+      // 一门课都没有，直接建议新建
+      ui.clSuggestion = { text, images: ui.clImages.slice(), matchCourseId:null, suggestedName:'新课程' };
+    } else {
+      const res = await aiClassifyCourseNote(text);
+      if(res && res.courseId && state.courses.some(c=>c.id===res.courseId)){
+        ui.clSuggestion = { text, images: ui.clImages.slice(), matchCourseId: res.courseId, suggestedName:null };
+      } else {
+        ui.clSuggestion = { text, images: ui.clImages.slice(), matchCourseId:null, suggestedName:(res && res.suggestedName)||'新课程' };
+      }
+    }
+    ui.clText=''; ui.clImages=[];
+    render();
+  };
+
+  slot.appendChild(box);
+
+  if(ui.clSuggestion){
+    const s = ui.clSuggestion;
+    const banner = document.createElement('div');
+    banner.className='suggest-banner';
+    if(s.matchCourseId){
+      const course = state.courses.find(c=>c.id===s.matchCourseId);
+      banner.innerHTML = `
+        <div class="suggest-text">这条内容像是「${escapeHtml(course?course.name:'')}」课的笔记</div>
+        <div class="suggest-actions">
+          <button class="pri" id="clAccept">归入这门课</button>
+          <button id="clPick">不对，换一门</button>
+          <button id="clStash">先存到暂存区</button>
+        </div>
+      `;
+      box.querySelector('#clSuggestSlot').appendChild(banner);
+      banner.querySelector('#clAccept').onclick=()=>{
+        const order = state.courseSteps.filter(x=>x.courseId===s.matchCourseId).length;
+        state.courseSteps.push({id:uid('st'), courseId:s.matchCourseId, title:'课堂速记 · '+new Date().toLocaleDateString('zh-CN'), content:s.text, image:s.images[0]||null, images:s.images, order, createdAt:Date.now()});
+        saveState(); ui.clSuggestion=null; render();
+      };
+      banner.querySelector('#clPick').onclick=()=>{
+        ui.modal={type:'pickCourse', text:s.text, images:s.images};
+        ui.clSuggestion=null; render();
+      };
+      banner.querySelector('#clStash').onclick=()=>{
+        state.courseStash.push({id:uid('cs'), text:s.text, images:s.images, createdAt:Date.now()});
+        saveState(); ui.clSuggestion=null; render();
+      };
+    } else {
+      banner.innerHTML = `
+        <div class="suggest-text">这条内容跟已有课程都不太像，建议新建课程「${escapeHtml(s.suggestedName)}」</div>
+        <div class="suggest-actions">
+          <button class="pri" id="clCreate">新建并归入</button>
+          <button id="clPick">改选已有课程</button>
+          <button id="clStash">先存到暂存区</button>
+        </div>
+      `;
+      box.querySelector('#clSuggestSlot').appendChild(banner);
+      banner.querySelector('#clCreate').onclick=()=>{
+        ui.modal={type:'confirmSuggestCourse', name:s.suggestedName, text:s.text, images:s.images};
+        render();
+      };
+      banner.querySelector('#clPick').onclick=()=>{
+        ui.modal={type:'pickCourse', text:s.text, images:s.images};
+        ui.clSuggestion=null; render();
+      };
+      banner.querySelector('#clStash').onclick=()=>{
+        state.courseStash.push({id:uid('cs'), text:s.text, images:s.images, createdAt:Date.now()});
+        saveState(); ui.clSuggestion=null; render();
+      };
+    }
+  }
+}
+
+/* 暂存区：不确定归属的课堂速记，之后可以再挪进具体课程 */
+function renderCourseStash(slot){
+  if(!state.courseStash || state.courseStash.length===0) return;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<div class="course-log-sub" style="margin:2px 0 8px;">暂存区 · ${state.courseStash.length} 条待归类</div>`;
+  state.courseStash.forEach(item=>{
+    const row = document.createElement('div'); row.className='stash-row';
+    row.innerHTML = `
+      <span class="stash-text">${escapeHtml(item.text||'（图片）')}</span>
+      <span class="stash-actions">
+        <span class="ghost-btn" data-move>归入课程</span>
+        <span class="ghost-btn" data-del>删除</span>
+      </span>
+    `;
+    row.querySelector('[data-move]').onclick=()=>{
+      ui.modal={type:'pickCourse', text:item.text, images:item.images, stashId:item.id};
+      render();
+    };
+    row.querySelector('[data-del]').onclick=()=>{
+      if(confirm('删除这条暂存内容？')){
+        state.courseStash = state.courseStash.filter(x=>x.id!==item.id);
+        saveState(); render();
+      }
+    };
+    wrap.appendChild(row);
+  });
+  slot.appendChild(wrap);
 }
 
 function renderCourseDetail(courseId){
@@ -1003,15 +1214,14 @@ function renderCourseDetail(courseId){
   const steps = state.courseSteps.filter(s=>s.courseId===courseId).sort((a,b)=>a.order-b.order);
   const wrap = document.createElement('div');
   wrap.innerHTML = `
-    <div class="view-head"><span class="ghost-btn" id="backBtn" style="margin-right:8px">← 返回</span><span class="view-title">${escapeHtml(course.name)}</span><span class="view-count">${steps.length} 个功能点</span></div>
-    <div class="view-hint">记录操作步骤，可配图</div>
+    <div class="view-head"><span class="ghost-btn" id="backBtn" style="margin-right:8px">← 返回</span><span class="view-title">${escapeHtml(course.name)}</span><span class="view-count">${steps.length} 个知识点</span></div>
+    <div class="view-hint">记录知识点，可配图</div>
     <button class="mindmap-btn" id="genMindmap">生成思维导图</button>
     <div id="mindmapSlot"></div>
-    <div class="newdoc-row"><span class="ghost-btn" id="addStepBtn">+ 新增步骤</span></div>
+    <div id="ccSlot"></div>
     <div id="stepList"></div>
   `;
   wrap.querySelector('#backBtn').onclick=()=>{ ui.courseDetail=null; render(); };
-  wrap.querySelector('#addStepBtn').onclick=()=>{ ui.modal={type:'stepMode', courseId}; render(); };
   wrap.querySelector('#genMindmap').onclick=()=>{
     const slot = wrap.querySelector('#mindmapSlot');
     slot.innerHTML = '';
@@ -1019,10 +1229,12 @@ function renderCourseDetail(courseId){
     mm.innerHTML = `<div class="mm-root">${escapeHtml(course.name)}</div><div class="mm-branches">${steps.map(s=>`<div class="mm-node"><b>${escapeHtml(s.title)}</b></div>`).join('')}</div>`;
     slot.appendChild(mm);
   };
+
+  renderCourseCapture(wrap.querySelector('#ccSlot'), courseId);
+
   const listEl = wrap.querySelector('#stepList');
   if(steps.length===0){
-    listEl.innerHTML = '';
-    listEl.appendChild(courseEmptyGuide(courseId));
+    listEl.innerHTML = '<div class="empty">还没有知识点，在上面写点什么开始吧</div>';
   }
   steps.forEach(s=>{
     const b = document.createElement('div'); b.className='step-block';
@@ -1043,24 +1255,118 @@ function renderCourseDetail(courseId){
   return wrap;
 }
 
-function courseEmptyGuide(courseId){
-  const div = document.createElement('div');
-  div.className='course-guide';
-  div.innerHTML = `
-    <div class="guide-steps">
-      <div class="guide-step"><div class="gs-num">1</div><div class="gs-t">添加功能点</div><div class="gs-d">比如"变量与循环"</div></div>
-      <div class="guide-step"><div class="gs-num">2</div><div class="gs-t">配图文步骤</div><div class="gs-d">截图+文字说明</div></div>
-      <div class="guide-step"><div class="gs-num">3</div><div class="gs-t">生成思维导图</div><div class="gs-d">一键整理成图</div></div>
-    </div>
-    <div class="guide-example">
-      <div class="ge-label">示例功能点</div>
-      <div class="ge-title">变量与数据类型</div>
-      <div class="ge-desc">步骤1：定义变量 → 步骤2：类型转换 → 步骤3：练习题</div>
-    </div>
-    <button class="primary" id="guideAddBtn" style="width:100%;">+ 添加第一个功能点</button>
-  `;
-  div.querySelector('#guideAddBtn').onclick=()=>{ ui.modal={type:'stepMode', courseId}; render(); };
-  return div;
+/* 课程详情页顶部的内嵌录入卡片：默认就是可以直接写字/贴图的"快速录入"，
+   不再先弹二选一小窗；想按知识点细写的，用卡片内的次要链接切换 */
+function renderCourseCapture(slot, courseId){
+  if(!ui.ccOpen){
+    const bar = document.createElement('div');
+    bar.className='cc-collapsed-bar';
+    bar.textContent='+ 记录新内容';
+    bar.onclick=()=>{ ui.ccOpen=true; render(); };
+    slot.appendChild(bar);
+    return;
+  }
+
+  const card = document.createElement('div');
+  card.className='course-capture';
+
+  if(ui.ccMode==='quick'){
+    card.innerHTML = `
+      <div class="cc-head"><span class="cc-head-title">快速记录这节课</span><span class="cc-toggle" id="ccCollapse">收起</span></div>
+      <div class="cc-hint">把这节课的笔记、板书、老师说的重点粘贴/写在这里，不用管格式</div>
+      <textarea id="ccText" placeholder="开始输入...">${escapeHtml(ui.ccText||'')}</textarea>
+      <div class="cc-imgbar">
+        <label class="ghost-btn" style="display:inline-flex;align-items:center;gap:6px;">📷 添加图片<input type="file" id="ccImg" accept="image/*" multiple style="display:none"></label>
+        <span class="cc-hintline">支持拖拽/粘贴多张截图</span>
+      </div>
+      <div class="img-thumbs" id="ccThumbs"></div>
+      <div class="cc-actions">
+        <button id="ccSaveWhole">直接保存这条</button>
+        <button class="pri" id="ccAiSplit">✨ AI 拆成知识点</button>
+      </div>
+      <div class="cc-switch-row"><span class="cc-switch-link" id="ccToStep">想按知识点一条条细写？</span></div>
+    `;
+    const textEl = card.querySelector('#ccText');
+    textEl.oninput = e=> ui.ccText = e.target.value;
+    const thumbs = card.querySelector('#ccThumbs');
+    function renderThumbs(){
+      thumbs.innerHTML='';
+      ui.ccImages.forEach((src,idx)=>{
+        const d=document.createElement('div'); d.className='img-thumb';
+        d.innerHTML=`<img src="${src}"><button class="rm">×</button>`;
+        d.querySelector('.rm').onclick=()=>{ ui.ccImages.splice(idx,1); renderThumbs(); };
+        thumbs.appendChild(d);
+      });
+    }
+    renderThumbs();
+    card.querySelector('#ccImg').onchange = async (e)=>{ for(const f of e.target.files){ ui.ccImages.push(await compressImage(f)); } renderThumbs(); };
+    attachImageDrop(card, async (files)=>{ for(const f of files){ ui.ccImages.push(await compressImage(f)); } renderThumbs(); });
+
+    card.querySelector('#ccCollapse').onclick=()=>{ ui.ccOpen=false; render(); };
+    card.querySelector('#ccToStep').onclick=()=>{ ui.ccMode='step'; render(); };
+
+    card.querySelector('#ccSaveWhole').onclick=()=>{
+      const text = ui.ccText.trim();
+      if(!text && ui.ccImages.length===0) return;
+      const order = state.courseSteps.filter(s=>s.courseId===courseId).length;
+      state.courseSteps.push({id:uid('st'), courseId, title:'整体笔记 · '+new Date().toLocaleDateString('zh-CN'), content:text, image:ui.ccImages[0]||null, images:ui.ccImages, order, createdAt:Date.now()});
+      saveState();
+      ui.ccText=''; ui.ccImages=[];
+      render();
+    };
+    card.querySelector('#ccAiSplit').onclick=async ()=>{
+      const text = ui.ccText.trim();
+      if(!text){ toast('先粘贴点内容再拆分'); return; }
+      const btn = card.querySelector('#ccAiSplit'); btn.disabled=true; btn.textContent='拆分中...';
+      const parsedSteps = await aiSplitCourseContent(text);
+      let order = state.courseSteps.filter(s=>s.courseId===courseId).length;
+      const imgs = ui.ccImages;
+      if(!parsedSteps || parsedSteps.length===0){
+        toast('拆分失败，已为你保存为整体记录');
+        state.courseSteps.push({id:uid('st'), courseId, title:'整体笔记 · '+new Date().toLocaleDateString('zh-CN'), content:text, image:imgs[0]||null, images:imgs, order, createdAt:Date.now()});
+      } else {
+        parsedSteps.forEach((s,idx)=>{
+          state.courseSteps.push({id:uid('st'), courseId, title:s.title||('知识点'+(idx+1)), content:s.content||'', image: idx===0?(imgs[0]||null):null, order:order++, createdAt:Date.now()});
+        });
+      }
+      saveState();
+      ui.ccText=''; ui.ccImages=[];
+      render();
+    };
+  } else {
+    // 分步骤细写模式
+    card.innerHTML = `
+      <div class="cc-head"><span class="cc-head-title">新增知识点</span><span class="cc-toggle" id="ccCollapse">收起</span></div>
+      <input type="text" id="ccTitle" class="cc-title-input" placeholder="知识点标题，如 蒙版转场怎么做" value="${escapeAttr(ui.ccTitle||'')}">
+      <textarea id="ccContent" placeholder="操作说明...">${escapeHtml(ui.ccContent||'')}</textarea>
+      <div class="cc-imgbar">
+        <label class="ghost-btn" style="display:inline-flex;align-items:center;gap:6px;">📷 添加图片<input type="file" id="ccStepImg" accept="image/*" style="display:none"></label>
+        <span class="cc-hintline">也可以直接拖拽图片到这里，或粘贴截图</span>
+      </div>
+      <div id="ccStepImgPreview" style="margin-top:8px">${ui.ccStepImage?`<img src="${ui.ccStepImage}" style="width:80px;border-radius:6px;">`:''}</div>
+      <div class="cc-actions"><button class="pri" id="ccSaveStep">保存知识点</button></div>
+      <div class="cc-switch-row"><span class="cc-switch-link" id="ccToQuick">返回快速录入</span></div>
+    `;
+    card.querySelector('#ccTitle').oninput = e=> ui.ccTitle = e.target.value;
+    card.querySelector('#ccContent').oninput = e=> ui.ccContent = e.target.value;
+    const setImg = async (file)=>{ ui.ccStepImage = await compressImage(file); card.querySelector('#ccStepImgPreview').innerHTML = `<img src="${ui.ccStepImage}" style="width:80px;border-radius:6px;">`; };
+    card.querySelector('#ccStepImg').onchange = async (e)=>{ if(e.target.files[0]) await setImg(e.target.files[0]); };
+    attachImageDrop(card, async (files)=>{ if(files[0]) await setImg(files[0]); });
+
+    card.querySelector('#ccCollapse').onclick=()=>{ ui.ccOpen=false; render(); };
+    card.querySelector('#ccToQuick').onclick=()=>{ ui.ccMode='quick'; render(); };
+    card.querySelector('#ccSaveStep').onclick=()=>{
+      const title = ui.ccTitle.trim();
+      if(!title) return;
+      const order = state.courseSteps.filter(s=>s.courseId===courseId).length;
+      state.courseSteps.push({id:uid('st'), courseId, title, content:ui.ccContent.trim(), image:ui.ccStepImage, order, createdAt:Date.now()});
+      saveState();
+      ui.ccTitle=''; ui.ccContent=''; ui.ccStepImage=null;
+      render();
+    };
+  }
+
+  slot.appendChild(card);
 }
 
 /* ===================== 弹窗 ===================== */
@@ -1184,85 +1490,39 @@ function renderModal(){
       const name = m.querySelector('#mName').value.trim();
       if(!name) return;
       const c = {id:uid('c'), name, createdAt:Date.now()};
-      state.courses.push(c); saveState(); ui.courseDetail=c.id; closeModal();
+      state.courses.push(c); saveState(); ui.courseDetail=c.id; resetCourseCapture(c.id); closeModal();
     };
   }
-  else if(t==='stepMode'){
-    m.innerHTML = `<h3>怎么记录这节课</h3>
-      <div class="opt-row" id="modeStep"><b style="display:block;font-size:13px;">分步骤录入</b><span style="font-size:11px;color:var(--ink-soft);">一步一步细写，适合重点复习</span></div>
-      <div class="opt-row" id="modeQuick"><b style="display:block;font-size:13px;">整节课快速录入</b><span style="font-size:11px;color:var(--ink-soft);">一股脑粘贴/拍照，AI帮你整理</span></div>
-      <div class="modal-actions"><button id="mCancel">取消</button></div>`;
-    const courseId = ui.modal.courseId;
-    m.querySelector('#mCancel').onclick=closeModal;
-    m.querySelector('#modeStep').onclick=()=>{ ui.modal={type:'newStep', courseId, title:'', content:'', image:null}; render(); };
-    m.querySelector('#modeQuick').onclick=()=>{ ui.modal={type:'quickCourseAdd', courseId}; render(); };
-  }
-  else if(t==='quickCourseAdd'){
-    const courseId = ui.modal.courseId;
-    m.innerHTML = `<h3>整节课快速录入</h3>
-      <textarea id="qContent" placeholder="把这节课的笔记、板书、老师说的重点都粘贴/写在这里，不用管格式" style="min-height:120px"></textarea>
-      <label class="icon-btn" style="width:auto;padding:0 10px;display:inline-flex;gap:6px;">📷 添加图片<input type="file" id="qImg" accept="image/*" multiple style="display:none"></label>
-      <div class="drop-hint" style="display:block;margin-top:6px;">也可以直接拖拽图片到这里，或粘贴截图</div>
-      <div class="img-thumbs" id="qThumbs" style="margin-top:8px"></div>
-      <div class="modal-actions"><button id="mCancel">取消</button><button id="mSaveWhole">直接保存为一条整体记录</button><button class="pri" id="mAiSplit">✨ AI 自动拆成功能点</button></div>`;
-    let qImgs = [];
-    const qThumbs = m.querySelector('#qThumbs');
-    function renderQThumbs(){
-      qThumbs.innerHTML='';
-      qImgs.forEach((src,idx)=>{
-        const d=document.createElement('div'); d.className='img-thumb';
-        d.innerHTML=`<img src="${src}"><button class="rm">×</button>`;
-        d.querySelector('.rm').onclick=()=>{ qImgs.splice(idx,1); renderQThumbs(); };
-        qThumbs.appendChild(d);
-      });
-    }
-    m.querySelector('#qImg').onchange = async (e)=>{ for(const f of e.target.files){ qImgs.push(await compressImage(f)); } renderQThumbs(); };
-    attachImageDrop(m, async (files)=>{ for(const f of files){ qImgs.push(await compressImage(f)); } renderQThumbs(); });
-    m.querySelector('#mCancel').onclick=closeModal;
-    m.querySelector('#mSaveWhole').onclick=()=>{
-      const text = m.querySelector('#qContent').value.trim();
-      if(!text && qImgs.length===0) return;
-      const order = state.courseSteps.filter(s=>s.courseId===courseId).length;
-      state.courseSteps.push({id:uid('st'), courseId, title:'整体笔记 · '+new Date().toLocaleDateString('zh-CN'), content:text, image:qImgs[0]||null, images:qImgs, order, createdAt:Date.now()});
-      saveState(); closeModal();
-    };
-    m.querySelector('#mAiSplit').onclick=async ()=>{
-      const text = m.querySelector('#qContent').value.trim();
-      if(!text){ toast('先粘贴点内容再拆分'); return; }
-      const btn = m.querySelector('#mAiSplit'); btn.disabled=true; btn.textContent='拆分中...';
-      const steps = await aiSplitCourseContent(text);
-      let order = state.courseSteps.filter(s=>s.courseId===courseId).length;
-      if(!steps || steps.length===0){
-        toast('拆分失败，已为你保存为整体记录');
-        state.courseSteps.push({id:uid('st'), courseId, title:'整体笔记 · '+new Date().toLocaleDateString('zh-CN'), content:text, image:qImgs[0]||null, images:qImgs, order, createdAt:Date.now()});
-        saveState(); closeModal(); return;
-      }
-      steps.forEach((s,idx)=>{
-        state.courseSteps.push({id:uid('st'), courseId, title:s.title||('功能点'+(idx+1)), content:s.content||'', image: idx===0?(qImgs[0]||null):null, order:order++, createdAt:Date.now()});
-      });
-      saveState(); closeModal();
-    };
-  }
-  else if(t==='newStep'){
-    m.innerHTML = `<h3>新增步骤</h3>
-      <input id="mTitle" placeholder="步骤标题，如 蒙版转场怎么做">
-      <textarea id="mContent" placeholder="操作说明..."></textarea>
-      <label class="icon-btn" style="width:auto;padding:0 10px;display:inline-flex;gap:6px;">📷 添加图片<input type="file" id="mImg" accept="image/*" style="display:none"></label>
-      <div class="drop-hint" style="display:block;margin-top:6px;">也可以直接拖拽图片到这里，或粘贴截图</div>
-      <div id="mImgPreview" style="margin-top:8px"></div>
-      <div class="modal-actions"><button id="mCancel">取消</button><button class="pri" id="mOk">保存</button></div>`;
-    let imgData = null;
-    const setImg = async (file)=>{ imgData = await compressImage(file); m.querySelector('#mImgPreview').innerHTML = `<img src="${imgData}" style="width:80px;border-radius:6px;">`; };
-    m.querySelector('#mImg').onchange = async (e)=>{ if(e.target.files[0]) await setImg(e.target.files[0]); };
-    attachImageDrop(m, async (files)=>{ if(files[0]) await setImg(files[0]); });
+  else if(t==='confirmSuggestCourse'){
+    m.innerHTML = `<h3>新建课程</h3><input id="mcName" value="${escapeAttr(ui.modal.name)}" placeholder="课程名称"><div class="modal-actions"><button id="mCancel">取消</button><button class="pri" id="mOk">创建并归入</button></div>`;
+    const nameInput = m.querySelector('#mcName');
+    setTimeout(()=>{ nameInput.focus(); nameInput.select(); }, 0);
     m.querySelector('#mCancel').onclick=closeModal;
     m.querySelector('#mOk').onclick=()=>{
-      const title = m.querySelector('#mTitle').value.trim();
-      if(!title) return;
-      const order = state.courseSteps.filter(s=>s.courseId===ui.modal.courseId).length;
-      state.courseSteps.push({id:uid('st'), courseId:ui.modal.courseId, title, content:m.querySelector('#mContent').value.trim(), image:imgData, order, createdAt:Date.now()});
+      const name = nameInput.value.trim();
+      if(!name) return;
+      const c = {id:uid('c'), name, createdAt:Date.now()};
+      state.courses.push(c);
+      state.courseSteps.push({id:uid('st'), courseId:c.id, title:'课堂速记 · '+new Date().toLocaleDateString('zh-CN'), content:ui.modal.text, image:ui.modal.images[0]||null, images:ui.modal.images, order:0, createdAt:Date.now()});
+      if(ui.modal.stashId){ state.courseStash = state.courseStash.filter(x=>x.id!==ui.modal.stashId); }
       saveState(); closeModal();
     };
+  }
+  else if(t==='pickCourse'){
+    m.innerHTML = `<h3>选择课程</h3><div id="pcList"></div><div class="modal-actions"><button id="mCancel">取消</button></div>`;
+    const list = m.querySelector('#pcList');
+    if(state.courses.length===0){ list.innerHTML='<div class="empty" style="padding:14px 0;">还没有课程，先创建一门吧</div>'; }
+    state.courses.forEach(c=>{
+      const row = document.createElement('div'); row.className='opt-row'; row.textContent=c.name;
+      row.onclick=()=>{
+        const order = state.courseSteps.filter(x=>x.courseId===c.id).length;
+        state.courseSteps.push({id:uid('st'), courseId:c.id, title:'课堂速记 · '+new Date().toLocaleDateString('zh-CN'), content:ui.modal.text, image:(ui.modal.images||[])[0]||null, images:ui.modal.images||[], order, createdAt:Date.now()});
+        if(ui.modal.stashId){ state.courseStash = state.courseStash.filter(x=>x.id!==ui.modal.stashId); }
+        saveState(); closeModal();
+      };
+      list.appendChild(row);
+    });
+    m.querySelector('#mCancel').onclick=closeModal;
   }
   else if(t==='exportScope'){
     const scopes = [
@@ -1304,6 +1564,7 @@ function exportBackup(){
     jobs: state.jobs,
     courses: state.courses,
     courseSteps: state.courseSteps,
+    courseStash: state.courseStash,
   };
   const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -1348,12 +1609,12 @@ renderModal = function(){
     m.querySelector('#mCancel').onclick=closeModal;
     m.querySelector('#optMerge').onclick=()=>{
       mergeBy(state.folders, d.folders); mergeBy(state.items, d.items); mergeBy(state.jobs, d.jobs);
-      mergeBy(state.courses, d.courses); mergeBy(state.courseSteps, d.courseSteps);
+      mergeBy(state.courses, d.courses); mergeBy(state.courseSteps, d.courseSteps); mergeBy(state.courseStash, d.courseStash);
       saveState(); toast('已合并导入'); closeModal();
     };
     m.querySelector('#optReplace').onclick=()=>{
       state.folders = d.folders||state.folders; state.items = d.items||[]; state.jobs = d.jobs||[];
-      state.courses = d.courses||[]; state.courseSteps = d.courseSteps||[];
+      state.courses = d.courses||[]; state.courseSteps = d.courseSteps||[]; state.courseStash = d.courseStash||[];
       saveState(); toast('已替换为备份内容'); closeModal();
     };
     return mask;
