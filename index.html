@@ -88,11 +88,6 @@ button,input,textarea,select{font-family:inherit;}
 .ghost-btn{font-size:11.5px;color:var(--ink-soft);border:1px solid var(--line);border-radius:7px;padding:5px 10px;cursor:pointer;background:transparent;}
 .ghost-btn:hover{border-color:var(--accent);color:var(--accent);}
 
-.suggest-banner{border:1px solid var(--accent);border-radius:9px;padding:11px 14px;margin-bottom:16px;background:#EAF0F7;}
-.suggest-text{font-size:12.5px;color:var(--ink);margin-bottom:8px;}
-.suggest-actions{display:flex;gap:7px;flex-wrap:wrap;}
-.suggest-actions button{font-size:11px;padding:5px 11px;border-radius:6px;cursor:pointer;border:1px solid var(--line);background:var(--card);}
-.suggest-actions button.pri{background:var(--ink);color:var(--paper);border:none;}
 
 .entries{display:flex;flex-direction:column;gap:12px;}
 .entry{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;position:relative;border-left:3px solid var(--cat-life);}
@@ -162,7 +157,7 @@ button,input,textarea,select{font-family:inherit;}
 .todo-row input{accent-color:var(--accent);}
 .todo-done{text-decoration:line-through;color:var(--ink-soft);}
 
-/* 课堂速记：不选课程直接写，AI 判断归属；暂存区放不确定归属的记录 */
+/* 课堂速记：先选课程再写；暂存区放不确定归属的记录 */
 .course-log{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 2px rgba(30,42,38,0.04);}
 .course-log-head{font-size:13px;font-weight:600;margin-bottom:2px;}
 .course-log-sub{font-size:11.5px;color:var(--ink-soft);margin-bottom:10px;}
@@ -214,6 +209,7 @@ button,input,textarea,select{font-family:inherit;}
 .step-block{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
 .step-title{font-size:14px;font-weight:600;margin-bottom:6px;}
 .step-content{font-size:12.5px;color:var(--ink-soft);line-height:1.6;white-space:pre-wrap;margin-bottom:8px;}
+.step-block .ghost-btn{margin-right:8px;}
 .step-img{max-width:220px;border-radius:6px;border:1px solid var(--line);cursor:zoom-in;}
 .mindmap-btn{font-size:11.5px;border:1px solid var(--accent);color:var(--accent);border-radius:7px;padding:6px 12px;cursor:pointer;background:var(--card);margin-bottom:14px;}
 .mindmap{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:16px;overflow-x:auto;}
@@ -223,7 +219,9 @@ button,input,textarea,select{font-family:inherit;}
 
 /* Modal */
 .modal-mask{position:fixed;inset:0;background:rgba(20,26,24,0.45);display:flex;align-items:center;justify-content:center;z-index:50;}
-.modal{background:var(--card);border-radius:12px;padding:20px;width:360px;max-width:92vw;box-shadow:0 8px 30px rgba(0,0,0,0.2);}
+.modal{background:var(--card);border-radius:12px;padding:20px;width:360px;max-width:92vw;box-shadow:0 8px 30px rgba(0,0,0,0.2);max-height:88vh;overflow-y:auto;}
+.modal.wide{width:600px;max-width:94vw;}
+.modal.wide textarea{min-height:220px;}
 .modal h3{font-family:'Fraunces',serif;font-size:16px;margin-bottom:12px;}
 .modal input,.modal textarea,.modal select{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 10px;font-size:13px;margin-bottom:10px;background:var(--paper);}
 .modal textarea{min-height:70px;resize:vertical;}
@@ -268,12 +266,12 @@ function colorFor(id){ return CAT_COLORS[id] || 'var(--cat-custom)'; }
 function uid(p){ return p+'_'+Math.random().toString(36).slice(2,9); }
 
 let state = { folders: JSON.parse(JSON.stringify(BUILTIN_FOLDERS)), items: [], jobs: [], courses: [], courseSteps: [], courseStash: [] };
-let ui = { view:'all', pendingImages:[], suggestion:null, modal:null, search:'',
+let ui = { view:'all', pendingImages:[], modal:null, search:'', captureFolderId:'__unfiled__',
   jobSearch:'', jobForm:{company:'',position:'',tag:'',stage:'待投递',jdLink:'',notes:''},
   renamingFolderId:null,
   wlFilterTag:'全部', wlTag:'会议纪要', wlPendingImages:[], weeklyDraft:'',
   ccOpen:true, ccMode:'quick', ccText:'', ccImages:[], ccTitle:'', ccContent:'', ccStepImage:null,
-  clText:'', clImages:[], clSuggestion:null };
+  clText:'', clImages:[], clCourseId:'' };
 
 function resetCourseCapture(courseId){
   const hasSteps = state.courseSteps.some(s=>s.courseId===courseId);
@@ -354,57 +352,6 @@ function compressImage(file){
     };
     reader.readAsDataURL(file);
   });
-}
-
-/* ===================== AI 分类（调用 Claude） ===================== */
-async function aiClassify(text){
-  const folderList = state.folders.filter(f=>!f.isWorklog).map(f=>({id:f.id,name:f.name}));
-  const prompt = `你是笔记分类助手。已有文件夹列表（JSON）：${JSON.stringify(folderList)}\n用户新写了一条速记："${text}"\n请判断这条内容最适合归入哪个已有文件夹。如果有合适的，只返回 {"folderId":"对应id"}；如果和所有文件夹都不太像，返回 {"folderId":null,"suggestedName":"一个简短贴切的新文件夹名"}。只返回JSON，不要任何其他文字。`;
-  try{
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:200, messages:[{role:'user', content:prompt}] })
-    });
-    const data = await resp.json();
-    const raw = (data.content||[]).map(c=>c.text||'').join('');
-    const clean = raw.replace(/```json|```/g,'').trim();
-    return JSON.parse(clean);
-  }catch(e){
-    return {folderId:null, suggestedName:null};
-  }
-}
-
-/* ===================== AI 课程内容拆分 ===================== */
-async function aiSplitCourseContent(text){
-  const prompt = `以下是一节课的完整笔记内容，请帮我拆分成几个独立的"知识点"（操作步骤/概念模块）。每个知识点包含一个简短标题(title)和对应内容(content)。只返回JSON数组，格式如[{"title":"...","content":"..."}]，不要任何其他文字。\n\n笔记内容：\n${text}`;
-  try{
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1200, messages:[{role:'user', content:prompt}] })
-    });
-    const data = await resp.json();
-    const raw = (data.content||[]).map(c=>c.text||'').join('');
-    const clean = raw.replace(/```json|```/g,'').trim();
-    return JSON.parse(clean);
-  }catch(e){ return null; }
-}
-
-/* ===================== AI 判断课堂速记像哪门课 ===================== */
-async function aiClassifyCourseNote(text){
-  const courseList = state.courses.map(c=>({id:c.id, name:c.name}));
-  const prompt = `你是课堂笔记分类助手。已有课程列表（JSON）：${JSON.stringify(courseList)}\n用户刚写了一条课堂速记，还没指定属于哪门课："${text}"\n请判断这条内容最适合归入哪门已有课程。如果有合适的，只返回 {"courseId":"对应id"}；如果和所有课程都不太像，返回 {"courseId":null,"suggestedName":"一个简短贴切的新课程名"}。只返回JSON，不要任何其他文字。`;
-  try{
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:200, messages:[{role:'user', content:prompt}] })
-    });
-    const data = await resp.json();
-    const raw = (data.content||[]).map(c=>c.text||'').join('');
-    const clean = raw.replace(/```json|```/g,'').trim();
-    return JSON.parse(clean);
-  }catch(e){
-    return {courseId:null, suggestedName:null};
-  }
 }
 
 /* ===================== 渲染 ===================== */
@@ -508,7 +455,7 @@ function navItem(viewKey,label,count,color,delId,showDel){
       }
       return;
     }
-    ui.view = viewKey; ui.suggestion=null; render();
+    ui.view = viewKey; render();
   };
   if(delId){
     b.querySelector('.nav-label').ondblclick=(e)=>{
@@ -577,21 +524,25 @@ function renderFolderView(){
   list = list.slice().sort((a,b)=> (b.updatedAt||b.timestamp) - (a.updatedAt||a.timestamp));
 
   const wrap = document.createElement('div');
+  const folderOptsHtml = isAll ? ['__unfiled__'].concat(state.folders.map(f=>f.id)).map(fid=>{
+    const fo = fid==='__unfiled__' ? {id:'__unfiled__',name:'未分类'} : state.folders.find(f=>f.id===fid);
+    return `<option value="${fo.id}" ${ui.captureFolderId===fo.id?'selected':''}>${escapeHtml(fo.name)}</option>`;
+  }).join('') : '';
   wrap.innerHTML = `
     <div class="view-head"><span class="view-title">${escapeHtml(title)}</span><span class="view-count">${list.length} 条</span></div>
-    <div class="view-hint">${isAll?'AI 只从已有文件夹里挑最匹配的，挑不出来才会建议新建':'速记与文档混排 · 按最近更新排序'}</div>
+    <div class="view-hint">${isAll?'选好文件夹再速记，随时能改':'速记与文档混排 · 按最近更新排序'}</div>
     <div class="capture" id="captureBox">
       <div class="capture-row">
-        <textarea id="captureText" placeholder="${isAll?'随手记点什么，AI 会帮你归类...':'记到「'+escapeAttr(title)+'」里...'}"></textarea>
+        <textarea id="captureText" placeholder="${isAll?'随手记点什么...':'记到「'+escapeAttr(title)+'」里...'}"></textarea>
       </div>
       <div class="drop-hint">松开鼠标即可添加图片</div>
       <div class="img-thumbs" id="imgThumbs"></div>
       <div class="capture-actions">
+        ${isAll?`<select id="captureFolder" style="max-width:140px;">${folderOptsHtml}</select>`:''}
         <label class="icon-btn" title="添加图片">📷<input type="file" id="imgInput" accept="image/*" multiple style="display:none"></label>
         <button class="primary" id="captureBtn">速记</button>
       </div>
     </div>
-    <div id="suggestSlot"></div>
     <div class="newdoc-row"><span class="ghost-btn" id="newDocBtn">+ 新建文档</span></div>
     <div class="entries" id="entriesSlot"></div>
   `;
@@ -616,63 +567,24 @@ function renderFolderView(){
     renderThumbs();
   });
 
-  wrap.querySelector('#captureBtn').onclick = async ()=>{
+  if(isAll){
+    wrap.querySelector('#captureFolder').onchange = e=> ui.captureFolderId = e.target.value;
+  }
+
+  wrap.querySelector('#captureBtn').onclick = ()=>{
     const ta = wrap.querySelector('#captureText');
     const text = ta.value.trim();
     if(!text && ui.pendingImages.length===0) return;
-    const btn = wrap.querySelector('#captureBtn');
-    btn.disabled = true; btn.textContent='处理中...';
-
-    let targetFolder = isAll ? null : folderId;
-    if(isAll && text){
-      const res = await aiClassify(text);
-      if(res && res.folderId){
-        targetFolder = res.folderId;
-      } else {
-        // 无匹配，弹出建议条，先暂存
-        ui.suggestion = { text, images: ui.pendingImages.slice(), suggestedName: (res && res.suggestedName) || '新分类' };
-        ui.pendingImages = [];
-        render();
-        return;
-      }
-    }
+    const targetFolder = isAll ? (ui.captureFolderId||'__unfiled__') : folderId;
     addItem('note', targetFolder||'__unfiled__', null, text, ui.pendingImages);
     ui.pendingImages = [];
     render();
   };
 
   wrap.querySelector('#newDocBtn').onclick = ()=>{
-    ui.modal = { type:'newDoc', folderId: isAll? (state.folders[0]?.id||'__unfiled__') : folderId, title:'', body:'' };
+    ui.modal = { type:'newDoc', folderId: isAll? (ui.captureFolderId||state.folders[0]?.id||'__unfiled__') : folderId, title:'', body:'' };
     render();
   };
-
-  // suggestion banner (全部视图专用)
-  if(isAll && ui.suggestion){
-    const s = ui.suggestion;
-    const banner = document.createElement('div');
-    banner.className='suggest-banner';
-    banner.innerHTML = `
-      <div class="suggest-text">这条内容跟已有文件夹都不太像，要不要新建「${escapeHtml(s.suggestedName)}」？</div>
-      <div class="suggest-actions">
-        <button class="pri" id="sugCreate">新建并归入</button>
-        <button id="sugPick">改选已有文件夹</button>
-        <button id="sugUnfiled">先放未分类</button>
-      </div>
-    `;
-    wrap.querySelector('#suggestSlot').appendChild(banner);
-    banner.querySelector('#sugCreate').onclick=()=>{
-      ui.modal={type:'confirmSuggestFolder', name:s.suggestedName, text:s.text, images:s.images};
-      render();
-    };
-    banner.querySelector('#sugUnfiled').onclick=()=>{
-      addItem('note','__unfiled__', null, s.text, s.images);
-      ui.suggestion=null; render();
-    };
-    banner.querySelector('#sugPick').onclick=()=>{
-      ui.modal={type:'pickFolder', text:s.text, images:s.images};
-      ui.suggestion=null; render();
-    };
-  }
 
   const entriesSlot = wrap.querySelector('#entriesSlot');
   if(list.length===0){
@@ -829,21 +741,6 @@ function addWorklogItem(folderId, tag, text, todos, images, weekRange){
   saveState();
 }
 
-async function aiSummarizeWeek(items){
-  const content = items.map(i=>'- '+(i.rawText||'')).join('\n');
-  const prompt = `以下是本周的工作日报条目，请帮我汇总成一份简洁的周报，分点说明本周完成的工作，如果内容里能看出后续安排，最后加一句"下周计划"。只返回周报正文，不要任何其他说明文字或markdown符号。\n\n${content}`;
-  try{
-    const resp = await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:600, messages:[{role:'user', content:prompt}] })
-    });
-    const data = await resp.json();
-    return (data.content||[]).map(c=>c.text||'').join('').trim();
-  }catch(e){
-    return '汇总失败，请稍后重试，或直接手写周报。';
-  }
-}
-
 function renderWorklogView(){
   const folder = state.folders.find(f=>f.isWorklog);
   let list = state.items.filter(i=>i.folderId===folder.id);
@@ -894,25 +791,13 @@ function renderWorklogView(){
       <div class="week-head">
         <span class="entry-tag" style="background:var(--cat-worklog)">周报</span>
         <span class="entry-time">${wk.label}</span>
-        <button class="ghost-btn" id="aiSumBtn" style="margin-left:auto;">✨ AI 一键汇总</button>
+        <span class="entry-time" style="margin-left:auto;">本周已记 ${weekDailies.length} 条日报</span>
       </div>
-      <div id="weekWarn"></div>
-      <textarea id="weekText" placeholder="在这里写你的周报，或点右上角让AI根据本周日报自动生成初稿">${escapeHtml(ui.weeklyDraft||'')}</textarea>
+      <textarea id="weekText" placeholder="在这里写本周的周报...">${escapeHtml(ui.weeklyDraft||'')}</textarea>
       <div class="job-form-actions" style="margin-top:8px;"><button id="weekSave">保存周报</button></div>
     `;
     composeSlot.appendChild(weekCard);
     weekCard.querySelector('#weekText').oninput = e=> ui.weeklyDraft = e.target.value;
-    weekCard.querySelector('#aiSumBtn').onclick = async ()=>{
-      if(weekDailies.length===0){
-        weekCard.querySelector('#weekWarn').innerHTML = `<div class="week-warn">这周（${wk.label}）还没有日报记录，没法生成汇总。先去记几条日报，或者直接手写周报。</div>`;
-        return;
-      }
-      const btn = weekCard.querySelector('#aiSumBtn');
-      btn.disabled=true; btn.textContent='汇总中...';
-      const summary = await aiSummarizeWeek(weekDailies);
-      ui.weeklyDraft = summary;
-      render();
-    };
     weekCard.querySelector('#weekSave').onclick = ()=>{
       if(!ui.weeklyDraft || !ui.weeklyDraft.trim()) return;
       addWorklogItem(folder.id, '周报', ui.weeklyDraft.trim(), null, [], wk.label);
@@ -1016,13 +901,17 @@ function renderWlEntry(item){
       <span class="entry-time">${timeStr}</span>
       ${item.tag?`<span class="entry-tag" style="background:${color}">${escapeHtml(item.tag)}</span>`:''}
       ${item.weekRange?`<span class="entry-folder">${escapeHtml(item.weekRange)}</span>`:''}
-      <span class="entry-actions"><span data-act="del">删除</span></span>
+      <span class="entry-actions"><span data-act="edit">编辑</span><span data-act="del">删除</span></span>
     </div>
     ${bodyHtml}
     ${item.images&&item.images.length?`<div class="entry-imgs">${item.images.map(s=>`<img src="${s}">`).join('')}</div>`:''}
   `;
   div.querySelector('[data-act="del"]').onclick=()=>{
     if(confirm('删除这条内容？')){ state.items=state.items.filter(i=>i.id!==item.id); saveState(); render(); }
+  };
+  div.querySelector('[data-act="edit"]').onclick=()=>{
+    ui.modal = { type:'editWlItem', item };
+    render();
   };
   if(item.tag==='待办' && item.todos){
     div.querySelectorAll('.todo-row input[type=checkbox]').forEach(cb=>{
@@ -1040,7 +929,7 @@ function renderCoursesView(){
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <div class="view-head"><span class="view-title">课程整理</span><span class="view-count">${state.courses.length} 门课程</span></div>
-    <div class="view-hint">按课程整理笔记和截图，AI 帮你拆重点、生成思维导图</div>
+    <div class="view-hint">按课程整理笔记和截图，可生成思维导图</div>
     <div id="courseLogSlot"></div>
     <div id="stashSlot"></div>
     <div class="newdoc-row"><span class="ghost-btn" id="addCourseBtn">+ 新建课程</span></div>
@@ -1074,20 +963,24 @@ function renderCoursesView(){
   return wrap;
 }
 
-/* 课堂速记：不用先选课程，写完AI判断像哪门课，一步确认；判断不了可以先存到暂存区 */
+/* 课堂速记：先选课程（或选"暂不归类"存到暂存区），再写内容 */
 function renderCourseLog(slot){
   const box = document.createElement('div');
   box.className='course-log';
+  const courseOpts = state.courses.map(c=>`<option value="${c.id}" ${ui.clCourseId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('');
   box.innerHTML = `
     <div class="course-log-head">课堂速记</div>
-    <div class="course-log-sub">不确定属于哪门课也没关系，先写下来，AI 帮你判断</div>
+    <div class="course-log-sub">选好课程再写，不确定就选"暂不归类"，之后去暂存区挪过去</div>
+    <select id="clCourse" style="margin-bottom:8px;">
+      <option value="">暂不归类（存到暂存区）</option>
+      ${courseOpts}
+    </select>
     <textarea id="clText" placeholder="老师刚讲的这段，先记下来...">${escapeHtml(ui.clText||'')}</textarea>
     <div class="img-thumbs" id="clThumbs"></div>
     <div class="course-log-actions">
       <label class="icon-btn" title="添加图片">📷<input type="file" id="clImg" accept="image/*" multiple style="display:none"></label>
       <button class="primary" id="clBtn" style="margin-left:auto;">速记</button>
     </div>
-    <div id="clSuggestSlot"></div>
   `;
   const thumbs = box.querySelector('#clThumbs');
   function renderThumbs(){
@@ -1100,84 +993,27 @@ function renderCourseLog(slot){
     });
   }
   renderThumbs();
+  box.querySelector('#clCourse').onchange = e=> ui.clCourseId = e.target.value;
   box.querySelector('#clText').oninput = e=> ui.clText = e.target.value;
   box.querySelector('#clImg').onchange = async (e)=>{ for(const f of e.target.files){ ui.clImages.push(await compressImage(f)); } renderThumbs(); };
   attachImageDrop(box, async (files)=>{ for(const f of files){ ui.clImages.push(await compressImage(f)); } renderThumbs(); });
 
-  box.querySelector('#clBtn').onclick = async ()=>{
+  box.querySelector('#clBtn').onclick = ()=>{
     const text = ui.clText.trim();
     if(!text && ui.clImages.length===0) return;
-    const btn = box.querySelector('#clBtn');
-    btn.disabled=true; btn.textContent='判断中...';
-    if(state.courses.length===0){
-      // 一门课都没有，直接建议新建
-      ui.clSuggestion = { text, images: ui.clImages.slice(), matchCourseId:null, suggestedName:'新课程' };
+    const images = ui.clImages.slice();
+    if(ui.clCourseId && state.courses.some(c=>c.id===ui.clCourseId)){
+      const order = state.courseSteps.filter(x=>x.courseId===ui.clCourseId).length;
+      state.courseSteps.push({id:uid('st'), courseId:ui.clCourseId, title:'课堂速记 · '+new Date().toLocaleDateString('zh-CN'), content:text, image:images[0]||null, images, order, createdAt:Date.now()});
     } else {
-      const res = await aiClassifyCourseNote(text);
-      if(res && res.courseId && state.courses.some(c=>c.id===res.courseId)){
-        ui.clSuggestion = { text, images: ui.clImages.slice(), matchCourseId: res.courseId, suggestedName:null };
-      } else {
-        ui.clSuggestion = { text, images: ui.clImages.slice(), matchCourseId:null, suggestedName:(res && res.suggestedName)||'新课程' };
-      }
+      state.courseStash.push({id:uid('cs'), text, images, createdAt:Date.now()});
     }
+    saveState();
     ui.clText=''; ui.clImages=[];
     render();
   };
 
   slot.appendChild(box);
-
-  if(ui.clSuggestion){
-    const s = ui.clSuggestion;
-    const banner = document.createElement('div');
-    banner.className='suggest-banner';
-    if(s.matchCourseId){
-      const course = state.courses.find(c=>c.id===s.matchCourseId);
-      banner.innerHTML = `
-        <div class="suggest-text">这条内容像是「${escapeHtml(course?course.name:'')}」课的笔记</div>
-        <div class="suggest-actions">
-          <button class="pri" id="clAccept">归入这门课</button>
-          <button id="clPick">不对，换一门</button>
-          <button id="clStash">先存到暂存区</button>
-        </div>
-      `;
-      box.querySelector('#clSuggestSlot').appendChild(banner);
-      banner.querySelector('#clAccept').onclick=()=>{
-        const order = state.courseSteps.filter(x=>x.courseId===s.matchCourseId).length;
-        state.courseSteps.push({id:uid('st'), courseId:s.matchCourseId, title:'课堂速记 · '+new Date().toLocaleDateString('zh-CN'), content:s.text, image:s.images[0]||null, images:s.images, order, createdAt:Date.now()});
-        saveState(); ui.clSuggestion=null; render();
-      };
-      banner.querySelector('#clPick').onclick=()=>{
-        ui.modal={type:'pickCourse', text:s.text, images:s.images};
-        ui.clSuggestion=null; render();
-      };
-      banner.querySelector('#clStash').onclick=()=>{
-        state.courseStash.push({id:uid('cs'), text:s.text, images:s.images, createdAt:Date.now()});
-        saveState(); ui.clSuggestion=null; render();
-      };
-    } else {
-      banner.innerHTML = `
-        <div class="suggest-text">这条内容跟已有课程都不太像，建议新建课程「${escapeHtml(s.suggestedName)}」</div>
-        <div class="suggest-actions">
-          <button class="pri" id="clCreate">新建并归入</button>
-          <button id="clPick">改选已有课程</button>
-          <button id="clStash">先存到暂存区</button>
-        </div>
-      `;
-      box.querySelector('#clSuggestSlot').appendChild(banner);
-      banner.querySelector('#clCreate').onclick=()=>{
-        ui.modal={type:'confirmSuggestCourse', name:s.suggestedName, text:s.text, images:s.images};
-        render();
-      };
-      banner.querySelector('#clPick').onclick=()=>{
-        ui.modal={type:'pickCourse', text:s.text, images:s.images};
-        ui.clSuggestion=null; render();
-      };
-      banner.querySelector('#clStash').onclick=()=>{
-        state.courseStash.push({id:uid('cs'), text:s.text, images:s.images, createdAt:Date.now()});
-        saveState(); ui.clSuggestion=null; render();
-      };
-    }
-  }
 }
 
 /* 暂存区：不确定归属的课堂速记，之后可以再挪进具体课程 */
@@ -1245,8 +1081,13 @@ function renderCourseDetail(courseId){
       <div class="step-title">${escapeHtml(s.title)}</div>
       ${imgsHtml}
       <div class="step-content">${escapeHtml(s.content||'')}</div>
+      <span class="ghost-btn" data-edit>编辑</span>
       <span class="ghost-btn" data-del>删除</span>
     `;
+    b.querySelector('[data-edit]').onclick=()=>{
+      ui.modal = { type:'editCourseStep', step:s };
+      render();
+    };
     b.querySelector('[data-del]').onclick=()=>{
       state.courseSteps = state.courseSteps.filter(x=>x.id!==s.id); saveState(); render();
     };
@@ -1281,8 +1122,7 @@ function renderCourseCapture(slot, courseId){
       </div>
       <div class="img-thumbs" id="ccThumbs"></div>
       <div class="cc-actions">
-        <button id="ccSaveWhole">直接保存这条</button>
-        <button class="pri" id="ccAiSplit">✨ AI 拆成知识点</button>
+        <button class="pri" id="ccSaveWhole">直接保存这条</button>
       </div>
       <div class="cc-switch-row"><span class="cc-switch-link" id="ccToStep">想按知识点一条条细写？</span></div>
     `;
@@ -1310,25 +1150,6 @@ function renderCourseCapture(slot, courseId){
       if(!text && ui.ccImages.length===0) return;
       const order = state.courseSteps.filter(s=>s.courseId===courseId).length;
       state.courseSteps.push({id:uid('st'), courseId, title:'整体笔记 · '+new Date().toLocaleDateString('zh-CN'), content:text, image:ui.ccImages[0]||null, images:ui.ccImages, order, createdAt:Date.now()});
-      saveState();
-      ui.ccText=''; ui.ccImages=[];
-      render();
-    };
-    card.querySelector('#ccAiSplit').onclick=async ()=>{
-      const text = ui.ccText.trim();
-      if(!text){ toast('先粘贴点内容再拆分'); return; }
-      const btn = card.querySelector('#ccAiSplit'); btn.disabled=true; btn.textContent='拆分中...';
-      const parsedSteps = await aiSplitCourseContent(text);
-      let order = state.courseSteps.filter(s=>s.courseId===courseId).length;
-      const imgs = ui.ccImages;
-      if(!parsedSteps || parsedSteps.length===0){
-        toast('拆分失败，已为你保存为整体记录');
-        state.courseSteps.push({id:uid('st'), courseId, title:'整体笔记 · '+new Date().toLocaleDateString('zh-CN'), content:text, image:imgs[0]||null, images:imgs, order, createdAt:Date.now()});
-      } else {
-        parsedSteps.forEach((s,idx)=>{
-          state.courseSteps.push({id:uid('st'), courseId, title:s.title||('知识点'+(idx+1)), content:s.content||'', image: idx===0?(imgs[0]||null):null, order:order++, createdAt:Date.now()});
-        });
-      }
       saveState();
       ui.ccText=''; ui.ccImages=[];
       render();
@@ -1375,6 +1196,8 @@ function renderModal(){
   mask.className='modal-mask';
   mask.onclick=(e)=>{ if(e.target===mask){ ui.modal=null; render(); } };
   const m = document.createElement('div'); m.className='modal';
+  const wideTypes = ['editItem','editWlItem','newDoc','editCourseStep'];
+  if(wideTypes.includes(ui.modal.type)) m.classList.add('wide');
   mask.appendChild(m);
   const t = ui.modal.type;
 
@@ -1387,30 +1210,6 @@ function renderModal(){
       state.folders.push({id:uid('f'), name, builtin:false});
       saveState(); closeModal();
     };
-  }
-  else if(t==='confirmSuggestFolder'){
-    m.innerHTML = `<h3>新建文件夹</h3><input id="mfName" value="${escapeAttr(ui.modal.name)}" placeholder="文件夹名称"><div class="modal-actions"><button id="mCancel">取消</button><button class="pri" id="mOk">创建并归入</button></div>`;
-    const nameInput = m.querySelector('#mfName');
-    setTimeout(()=>{ nameInput.focus(); nameInput.select(); }, 0);
-    m.querySelector('#mCancel').onclick=closeModal;
-    m.querySelector('#mOk').onclick=()=>{
-      const name = nameInput.value.trim();
-      if(!name) return;
-      const nf = {id:uid('f'), name, builtin:false};
-      state.folders.push(nf);
-      addItem('note', nf.id, null, ui.modal.text, ui.modal.images);
-      closeModal();
-    };
-  }
-  else if(t==='pickFolder'){
-    m.innerHTML = `<h3>选择文件夹</h3><div id="pfList"></div><div class="modal-actions"><button id="mCancel">取消</button></div>`;
-    const list = m.querySelector('#pfList');
-    state.folders.forEach(f=>{
-      const row = document.createElement('div'); row.className='opt-row'; row.textContent=f.name;
-      row.onclick=()=>{ addItem('note', f.id, null, ui.modal.text, ui.modal.images); closeModal(); };
-      list.appendChild(row);
-    });
-    m.querySelector('#mCancel').onclick=closeModal;
   }
   else if(t==='newDoc'){
     const folderOpts = state.folders.map(f=>`<option value="${f.id}" ${f.id===ui.modal.folderId?'selected':''}>${escapeHtml(f.name)}</option>`).join('');
@@ -1431,19 +1230,94 @@ function renderModal(){
   else if(t==='editItem'){
     const item = ui.modal.item;
     const folderOpts = [{id:'__unfiled__',name:'未分类'}].concat(state.folders).map(f=>`<option value="${f.id}" ${f.id===(item.folderId||'__unfiled__')?'selected':''}>${escapeHtml(f.name)}</option>`).join('');
+    const d = new Date(item.updatedAt||item.timestamp);
+    const dateVal = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const timeVal = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     m.innerHTML = `<h3>编辑</h3>
       <label style="font-size:11px;color:var(--ink-soft);display:block;margin-bottom:4px;">所属文件夹</label>
       <select id="mfFolder">${folderOpts}</select>
       <input id="mfTitle" placeholder="标题（可选）" value="${escapeAttr(item.title||'')}">
       <textarea id="mfBody" style="min-height:140px">${escapeHtml(item.rawText||'')}</textarea>
       ${item.images&&item.images.length?`<div class="img-thumbs" style="margin-bottom:10px">${item.images.map(s=>`<div class="img-thumb"><img src="${s}"></div>`).join('')}</div>`:''}
+      <label style="font-size:11px;color:var(--ink-soft);display:block;margin-bottom:4px;">记录时间</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="date" id="mfDate" value="${dateVal}" style="flex:1;">
+        <input type="time" id="mfTime" value="${timeVal}" style="flex:1;">
+      </div>
       <div class="modal-actions"><button id="mCancel">取消</button><button class="pri" id="mOk">保存</button></div>`;
     m.querySelector('#mCancel').onclick=closeModal;
     m.querySelector('#mOk').onclick=()=>{
       item.folderId = m.querySelector('#mfFolder').value;
       item.title = m.querySelector('#mfTitle').value.trim();
       item.rawText = m.querySelector('#mfBody').value.trim();
-      item.updatedAt = Date.now();
+      const dv = m.querySelector('#mfDate').value;
+      const tv = m.querySelector('#mfTime').value || '00:00';
+      const combined = dv ? new Date(`${dv}T${tv}`).getTime() : Date.now();
+      item.updatedAt = isNaN(combined) ? Date.now() : combined;
+      saveState(); closeModal();
+    };
+  }
+  else if(t==='editWlItem'){
+    const item = ui.modal.item;
+    const d = new Date(item.updatedAt||item.timestamp);
+    const dateVal = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const timeVal = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const isTodo = item.tag==='待办' && item.todos;
+    const bodyField = isTodo
+      ? `<label style="font-size:11px;color:var(--ink-soft);display:block;margin-bottom:4px;">待办事项（每行一条）</label>
+         <textarea id="mfBody" style="min-height:120px">${escapeHtml(item.todos.map(t=>t.text).join('\n'))}</textarea>`
+      : `<textarea id="mfBody" style="min-height:120px">${escapeHtml(item.rawText||'')}</textarea>`;
+    m.innerHTML = `<h3>编辑${item.tag?'·'+escapeHtml(item.tag):''}</h3>
+      ${bodyField}
+      ${item.images&&item.images.length?`<div class="img-thumbs" style="margin-bottom:10px">${item.images.map(s=>`<div class="img-thumb"><img src="${s}"></div>`).join('')}</div>`:''}
+      <label style="font-size:11px;color:var(--ink-soft);display:block;margin-bottom:4px;">记录时间</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="date" id="mfDate" value="${dateVal}" style="flex:1;">
+        <input type="time" id="mfTime" value="${timeVal}" style="flex:1;">
+      </div>
+      <div class="modal-actions"><button id="mCancel">取消</button><button class="pri" id="mOk">保存</button></div>`;
+    m.querySelector('#mCancel').onclick=closeModal;
+    m.querySelector('#mOk').onclick=()=>{
+      const bodyVal = m.querySelector('#mfBody').value;
+      if(isTodo){
+        const lines = bodyVal.split('\n').map(s=>s.trim()).filter(Boolean);
+        item.todos = lines.map((text,idx)=>({ text, done: (item.todos[idx]&&item.todos[idx].text===text) ? item.todos[idx].done : false }));
+      } else {
+        item.rawText = bodyVal.trim();
+      }
+      const dv = m.querySelector('#mfDate').value;
+      const tv = m.querySelector('#mfTime').value || '00:00';
+      const combined = dv ? new Date(`${dv}T${tv}`).getTime() : Date.now();
+      item.updatedAt = isNaN(combined) ? Date.now() : combined;
+      saveState(); closeModal();
+    };
+  }
+  else if(t==='editCourseStep'){
+    const step = ui.modal.step;
+    const d = new Date(step.createdAt||Date.now());
+    const dateVal = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const timeVal = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const imgs = (step.images&&step.images.length)?step.images:(step.image?[step.image]:[]);
+    m.innerHTML = `<h3>编辑知识点</h3>
+      <label style="font-size:11px;color:var(--ink-soft);display:block;margin-bottom:4px;">标题</label>
+      <input id="mfTitle" placeholder="知识点标题" value="${escapeAttr(step.title||'')}">
+      <label style="font-size:11px;color:var(--ink-soft);display:block;margin-bottom:4px;">内容</label>
+      <textarea id="mfBody">${escapeHtml(step.content||'')}</textarea>
+      ${imgs.length?`<div class="img-thumbs" style="margin-bottom:10px">${imgs.map(s=>`<div class="img-thumb"><img src="${s}"></div>`).join('')}</div>`:''}
+      <label style="font-size:11px;color:var(--ink-soft);display:block;margin-bottom:4px;">记录时间</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input type="date" id="mfDate" value="${dateVal}" style="flex:1;">
+        <input type="time" id="mfTime" value="${timeVal}" style="flex:1;">
+      </div>
+      <div class="modal-actions"><button id="mCancel">取消</button><button class="pri" id="mOk">保存</button></div>`;
+    m.querySelector('#mCancel').onclick=closeModal;
+    m.querySelector('#mOk').onclick=()=>{
+      step.title = m.querySelector('#mfTitle').value.trim() || step.title;
+      step.content = m.querySelector('#mfBody').value.trim();
+      const dv = m.querySelector('#mfDate').value;
+      const tv = m.querySelector('#mfTime').value || '00:00';
+      const combined = dv ? new Date(`${dv}T${tv}`).getTime() : step.createdAt;
+      step.createdAt = isNaN(combined) ? step.createdAt : combined;
       saveState(); closeModal();
     };
   }
@@ -1491,21 +1365,6 @@ function renderModal(){
       if(!name) return;
       const c = {id:uid('c'), name, createdAt:Date.now()};
       state.courses.push(c); saveState(); ui.courseDetail=c.id; resetCourseCapture(c.id); closeModal();
-    };
-  }
-  else if(t==='confirmSuggestCourse'){
-    m.innerHTML = `<h3>新建课程</h3><input id="mcName" value="${escapeAttr(ui.modal.name)}" placeholder="课程名称"><div class="modal-actions"><button id="mCancel">取消</button><button class="pri" id="mOk">创建并归入</button></div>`;
-    const nameInput = m.querySelector('#mcName');
-    setTimeout(()=>{ nameInput.focus(); nameInput.select(); }, 0);
-    m.querySelector('#mCancel').onclick=closeModal;
-    m.querySelector('#mOk').onclick=()=>{
-      const name = nameInput.value.trim();
-      if(!name) return;
-      const c = {id:uid('c'), name, createdAt:Date.now()};
-      state.courses.push(c);
-      state.courseSteps.push({id:uid('st'), courseId:c.id, title:'课堂速记 · '+new Date().toLocaleDateString('zh-CN'), content:ui.modal.text, image:ui.modal.images[0]||null, images:ui.modal.images, order:0, createdAt:Date.now()});
-      if(ui.modal.stashId){ state.courseStash = state.courseStash.filter(x=>x.id!==ui.modal.stashId); }
-      saveState(); closeModal();
     };
   }
   else if(t==='pickCourse'){
