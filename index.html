@@ -87,6 +87,13 @@ button,input,textarea,select{font-family:inherit;}
 .newdoc-row{display:flex;justify-content:flex-end;margin-bottom:16px;}
 .ghost-btn{font-size:11.5px;color:var(--ink-soft);border:1px solid var(--line);border-radius:7px;padding:5px 10px;cursor:pointer;background:transparent;}
 .ghost-btn:hover{border-color:var(--accent);color:var(--accent);}
+.bulk-toolbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0 0 12px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:11.5px;color:var(--ink-soft);}
+.bulk-toolbar .bulk-count{margin-right:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;}
+.bulk-btn{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:4px 8px;cursor:pointer;background:transparent;color:var(--ink-soft);}
+.bulk-btn:hover{border-color:var(--accent);color:var(--accent);}
+.bulk-btn.danger{border-color:#E5C4C1;color:var(--danger);}
+.bulk-btn.danger:hover{background:#FBEDEC;border-color:var(--danger);}
+.bulk-check{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
 
 
 .entries{display:flex;flex-direction:column;gap:12px;}
@@ -271,7 +278,54 @@ let ui = { view:'all', pendingImages:[], modal:null, search:'', captureFolderId:
   renamingFolderId:null,
   wlFilterTag:'全部', wlTag:'会议纪要', wlPendingImages:[], weeklyDraft:'',
   ccOpen:true, ccMode:'quick', ccText:'', ccImages:[], ccTitle:'', ccContent:'', ccStepImage:null,
-  clText:'', clImages:[], clCourseId:'' };
+  clText:'', clImages:[], clCourseId:'', bulkMode:false, selectedItemIds:[] };
+
+function isItemSelected(id){
+  return ui.selectedItemIds.includes(id);
+}
+function toggleItemSelection(id){
+  ui.selectedItemIds = isItemSelected(id)
+    ? ui.selectedItemIds.filter(x=>x!==id)
+    : [...ui.selectedItemIds, id];
+}
+function removeItems(ids, confirmText){
+  if(!ids.length) return;
+  if(!confirm(confirmText)) return;
+  const idSet = new Set(ids);
+  state.items = state.items.filter(item=>!idSet.has(item.id));
+  ui.selectedItemIds = ui.selectedItemIds.filter(id=>!idSet.has(id));
+  saveState();
+  render();
+}
+function mountBulkToolbar(container, visibleItems){
+  const visibleIds = visibleItems.map(item=>item.id);
+  const selectedVisible = visibleIds.filter(isItemSelected);
+  if(!ui.bulkMode){
+    container.innerHTML = `<button class="bulk-btn" id="enterBulkBtn">批量管理</button>`;
+    container.querySelector('#enterBulkBtn').onclick = ()=>{ ui.bulkMode=true; ui.selectedItemIds=[]; render(); };
+    return;
+  }
+  container.innerHTML = `
+    <span class="bulk-count">已选 ${selectedVisible.length} / ${visibleItems.length} 条</span>
+    <button class="bulk-btn" id="selectVisibleBtn">${selectedVisible.length===visibleItems.length && visibleItems.length ? '取消全选' : '全选当前列表'}</button>
+    <button class="bulk-btn danger" id="deleteSelectedBtn" ${selectedVisible.length?'':'disabled'}>删除已选</button>
+    <button class="bulk-btn danger" id="deleteVisibleBtn" ${visibleItems.length?'':'disabled'}>清空当前列表</button>
+    <button class="bulk-btn" id="exitBulkBtn">完成</button>`;
+  container.querySelector('#selectVisibleBtn').onclick = ()=>{
+    const allVisibleSelected = selectedVisible.length===visibleItems.length && visibleItems.length;
+    ui.selectedItemIds = allVisibleSelected
+      ? ui.selectedItemIds.filter(id=>!visibleIds.includes(id))
+      : [...new Set([...ui.selectedItemIds, ...visibleIds])];
+    render();
+  };
+  container.querySelector('#deleteSelectedBtn').onclick = ()=>{
+    removeItems(selectedVisible, `确定删除已选的 ${selectedVisible.length} 条内容吗？此操作无法撤销。`);
+  };
+  container.querySelector('#deleteVisibleBtn').onclick = ()=>{
+    removeItems(visibleIds, `确定清空当前列表中的 ${visibleItems.length} 条内容吗？此操作无法撤销。`);
+  };
+  container.querySelector('#exitBulkBtn').onclick = ()=>{ ui.bulkMode=false; ui.selectedItemIds=[]; render(); };
+}
 
 function resetCourseCapture(courseId){
   const hasSteps = state.courseSteps.some(s=>s.courseId===courseId);
@@ -281,26 +335,90 @@ function resetCourseCapture(courseId){
 }
 
 async function loadState(){
+  let migrated = false;
   try{
-    const raw = localStorage.getItem('notes_app_data');
-    if(raw){
-      const d = JSON.parse(raw);
-      state.folders = d.folders && d.folders.length ? d.folders : state.folders;
-      state.items = d.items || [];
-      state.jobs = d.jobs || [];
-      state.courses = d.courses || [];
-      state.courseSteps = d.courseSteps || [];
-      state.courseStash = d.courseStash || [];
+    const savedState = await readStateFromIndexedDB();
+    if(savedState){
+      applySavedState(savedState);
+    } else {
+      // 兼容旧版本：首次升级时自动把 localStorage 数据迁移到 IndexedDB。
+      const raw = localStorage.getItem('notes_app_data');
+      if(raw){
+        applySavedState(JSON.parse(raw));
+        await writeStateToIndexedDB(state);
+        migrated = true;
+      }
     }
-  }catch(e){ /* 首次使用，没有历史数据 */ }
-  render();
-}
-async function saveState(){
-  try{
-    localStorage.setItem('notes_app_data', JSON.stringify(state));
   }catch(e){
-    toast('保存失败，可能是浏览器存储容量已满（通常是图片太多），建议导出备份并清理一些内容');
+    // 少数浏览器禁用 IndexedDB 时，仍可读取旧版本地数据，避免用户数据不可见。
+    try{
+      const raw = localStorage.getItem('notes_app_data');
+      if(raw) applySavedState(JSON.parse(raw));
+    }catch(ignore){}
   }
+  render();
+  if(migrated) toast('旧版数据已迁移到更大容量的本地存储');
+}
+function applySavedState(d){
+  state.folders = d.folders && d.folders.length ? d.folders : state.folders;
+  state.items = d.items || [];
+  state.jobs = d.jobs || [];
+  state.courses = d.courses || [];
+  state.courseSteps = d.courseSteps || [];
+  state.courseStash = d.courseStash || [];
+}
+
+const DB_NAME = 'notes_assistant_db';
+const DB_VERSION = 1;
+const DB_STORE = 'app_state';
+const DB_STATE_KEY = 'main';
+let dbPromise = null;
+let saveQueue = Promise.resolve();
+
+function getDatabase(){
+  if(dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve,reject)=>{
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = ()=>{
+      const db = request.result;
+      if(!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
+    };
+    request.onsuccess = ()=>resolve(request.result);
+    request.onerror = ()=>reject(request.error);
+  });
+  return dbPromise;
+}
+async function readStateFromIndexedDB(){
+  const db = await getDatabase();
+  return new Promise((resolve,reject)=>{
+    const request = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).get(DB_STATE_KEY);
+    request.onsuccess = ()=>resolve(request.result || null);
+    request.onerror = ()=>reject(request.error);
+  });
+}
+async function writeStateToIndexedDB(data){
+  const db = await getDatabase();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    tx.objectStore(DB_STORE).put(data, DB_STATE_KEY);
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+    tx.onabort = ()=>reject(tx.error);
+  });
+}
+function saveState(){
+  // 保存快照并排队写入，避免连续操作时异步写入顺序错乱。
+  const snapshot = JSON.parse(JSON.stringify(state));
+  saveQueue = saveQueue.then(()=>writeStateToIndexedDB(snapshot)).catch(()=>{
+    // IndexedDB 被浏览器隐私设置禁用时，退回旧存储方式，保证基本可用。
+    try{
+      localStorage.setItem('notes_app_data', JSON.stringify(snapshot));
+      toast('IndexedDB 不可用，已临时使用浏览器基础存储；请定期导出备份');
+    }catch(ignore){
+      toast('保存失败，可能是浏览器存储空间已满或被禁用；请导出 JSON 备份后清理内容');
+    }
+  });
+  return saveQueue;
 }
 function toast(msg){
   const t = document.createElement('div');
@@ -544,6 +662,7 @@ function renderFolderView(){
       </div>
     </div>
     <div class="newdoc-row"><span class="ghost-btn" id="newDocBtn">+ 新建文档</span></div>
+    <div class="bulk-toolbar" id="bulkToolbar"></div>
     <div class="entries" id="entriesSlot"></div>
   `;
 
@@ -586,6 +705,7 @@ function renderFolderView(){
     render();
   };
 
+  mountBulkToolbar(wrap.querySelector('#bulkToolbar'), list);
   const entriesSlot = wrap.querySelector('#entriesSlot');
   if(list.length===0){
     entriesSlot.innerHTML = '<div class="empty">还没有内容，从上方开始记录吧</div>';
@@ -606,22 +726,27 @@ function renderEntry(item){
   div.style.borderLeftColor = color;
   div.innerHTML = `
     <div class="entry-top">
+      ${ui.bulkMode?`<input class="bulk-check" type="checkbox" aria-label="选择这条内容" ${isItemSelected(item.id)?'checked':''}>`:''}
       <span class="entry-time">${timeStr}</span>
       <span class="entry-tag" style="background:${color}">${item.type==='doc'?'文档':'速记'}</span>
       <span class="entry-folder">${escapeHtml(fname)}</span>
-      <span class="entry-actions"><span data-act="edit">编辑</span><span data-act="del">删除</span></span>
+      ${ui.bulkMode?'':`<span class="entry-actions"><span data-act="edit">编辑</span><span data-act="del">删除</span></span>`}
     </div>
     ${item.title?`<div class="entry-title">${escapeHtml(item.title)}</div>`:''}
     <div class="entry-body">${escapeHtml(item.rawText||'')}</div>
     ${item.images&&item.images.length?`<div class="entry-imgs">${item.images.map(s=>`<img src="${s}">`).join('')}</div>`:''}
   `;
-  div.querySelector('[data-act="del"]').onclick=()=>{
-    if(confirm('删除这条内容？')){ state.items = state.items.filter(i=>i.id!==item.id); saveState(); render(); }
-  };
-  div.querySelector('[data-act="edit"]').onclick=()=>{
-    ui.modal = { type:'editItem', item };
-    render();
-  };
+  if(ui.bulkMode){
+    div.querySelector('.bulk-check').onchange=()=>{ toggleItemSelection(item.id); render(); };
+  } else {
+    div.querySelector('[data-act="del"]').onclick=()=>{
+      removeItems([item.id], '删除这条内容？此操作无法撤销。');
+    };
+    div.querySelector('[data-act="edit"]').onclick=()=>{
+      ui.modal = { type:'editItem', item };
+      render();
+    };
+  }
   return div;
 }
 
@@ -759,6 +884,7 @@ function renderWorklogView(){
     <div class="view-hint">按时间线回看你写过的日志 · 与「工作日志」文件夹同源</div>
     <div class="wl-tags" id="wlTags"></div>
     <div id="wlComposeSlot"></div>
+    <div class="bulk-toolbar" id="wlBulkToolbar"></div>
     <div id="wlGroups"></div>
   `;
 
@@ -869,6 +995,7 @@ function renderWorklogView(){
     };
   }
 
+  mountBulkToolbar(wrap.querySelector('#wlBulkToolbar'), list);
   const gEl = wrap.querySelector('#wlGroups');
   const keys = Object.keys(groups).sort().reverse();
   if(keys.length===0){ gEl.innerHTML='<div class="empty">工作日志还是空的，写下今天做了什么吧</div>'; }
@@ -898,22 +1025,27 @@ function renderWlEntry(item){
   }
   div.innerHTML = `
     <div class="entry-top">
+      ${ui.bulkMode?`<input class="bulk-check" type="checkbox" aria-label="选择这条日志" ${isItemSelected(item.id)?'checked':''}>`:''}
       <span class="entry-time">${timeStr}</span>
       ${item.tag?`<span class="entry-tag" style="background:${color}">${escapeHtml(item.tag)}</span>`:''}
       ${item.weekRange?`<span class="entry-folder">${escapeHtml(item.weekRange)}</span>`:''}
-      <span class="entry-actions"><span data-act="edit">编辑</span><span data-act="del">删除</span></span>
+      ${ui.bulkMode?'':`<span class="entry-actions"><span data-act="edit">编辑</span><span data-act="del">删除</span></span>`}
     </div>
     ${bodyHtml}
     ${item.images&&item.images.length?`<div class="entry-imgs">${item.images.map(s=>`<img src="${s}">`).join('')}</div>`:''}
   `;
-  div.querySelector('[data-act="del"]').onclick=()=>{
-    if(confirm('删除这条内容？')){ state.items=state.items.filter(i=>i.id!==item.id); saveState(); render(); }
-  };
-  div.querySelector('[data-act="edit"]').onclick=()=>{
-    ui.modal = { type:'editWlItem', item };
-    render();
-  };
-  if(item.tag==='待办' && item.todos){
+  if(ui.bulkMode){
+    div.querySelector('.bulk-check').onchange=()=>{ toggleItemSelection(item.id); render(); };
+  } else {
+    div.querySelector('[data-act="del"]').onclick=()=>{
+      removeItems([item.id], '删除这条内容？此操作无法撤销。');
+    };
+    div.querySelector('[data-act="edit"]').onclick=()=>{
+      ui.modal = { type:'editWlItem', item };
+      render();
+    };
+  }
+  if(!ui.bulkMode && item.tag==='待办' && item.todos){
     div.querySelectorAll('.todo-row input[type=checkbox]').forEach(cb=>{
       cb.onchange = ()=>{ item.todos[+cb.dataset.idx].done = cb.checked; saveState(); render(); };
     });
