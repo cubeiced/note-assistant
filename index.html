@@ -2497,23 +2497,38 @@ loadState();
 <script src="./workbuddy-cloud-sdk.js"></script>
 <script>
 /* ============ AI 通道 v1：托管后端免密钥调用，三个板块共用 ============ */
-if(!window.WorkBuddyCloud){
-  console.warn('云服务 SDK 加载失败，AI 功能暂不可用');
-}else{
-const AI_CONFIG={endpoint:'https://note-assistant.app.workbuddy.host',publishableKey:'wbpk_93byPOa0qaAWNxclc5ycrN_N5kgiMIzVjPl43obP8gWCVZ2XnPiPqkt'};
-const cloud=WorkBuddyCloud.createWorkBuddyCloud(AI_CONFIG);
-let aiModelPromise=null,aiBusy=false;
-function getAiModel(wantImage){
-  if(!aiModelPromise)aiModelPromise=cloud.llm.models.list().then(models=>{
-    const ok=models.filter(x=>x.disabled!==true);
-    if(!ok.length)throw Error('云服务暂未配置可用模型，请稍后再试');
-    /* 实测：auto 首字延迟 30s+，deepseek-v4-flash 全程仅 4s，文字任务优先锁定快速模型 */
-    const pref=ok.find(x=>/deepseek-v4-flash|deepseek-v4\.1-flash/.test(x.id));
-    const text=pref||ok.find(x=>x.id!=='auto')||ok[0];
-    const img=ok.find(x=>x.supportsImages===true);
-    return {id:text.id,imageId:img?img.id:null};
-  }).catch(e=>{aiModelPromise=null;throw e;});
-  return aiModelPromise.then(o=>wantImage?{id:o.imageId,imageId:o.imageId}:o);
+{
+/* ============ 独立 AI 通道 v2：直连阿里云百炼（OpenAI 兼容格式） ============ */
+/* 文字任务走 qwen-plus，JD 截图识别走 qwen-vl-plus；更换模型只改这里 */
+const AI_CONFIG={proxy:'',baseURL:'https://dashscope.aliyuncs.com/compatible-mode/v1',apiKey:'sk-ws-H.PLPPMXM.QLeo.MEUCIAR4aOjDFVUhfA0NCnBqUtBzBUzfL_pZAmIUq9ICip-kAiEA_Y-xKEeTSiaxzDvih1X9ZOWM1KPKS2NrAxKF2b7m5vQ',textModel:'qwen-plus',visionModel:'qwen-vl-plus'};
+let aiBusy=false;
+async function aiChat({model,messages,temperature=0.3,maxTokens,responseFormat,signal}){
+  const endpoint=(AI_CONFIG.proxy||AI_CONFIG.baseURL)+'/chat/completions';
+  const headers={'Content-Type':'application/json'};
+  if(!AI_CONFIG.proxy&&AI_CONFIG.apiKey)headers.Authorization='Bearer '+AI_CONFIG.apiKey;
+  const res=await fetch(endpoint,{method:'POST',signal,headers,
+    body:JSON.stringify({model,messages,stream:true,temperature,...(maxTokens?{max_tokens:maxTokens}:{}),...(responseFormat?{response_format:responseFormat}:{})})});
+  if(!res.ok){
+    let code='http_'+res.status,msg='';
+    try{const j=await res.json();msg=j?.error?.message||j?.message||'';if(j?.error?.code==='insufficient_quota')code='quota_exhausted';}catch(e){}
+    if(res.status===401||res.status===403)code='auth_denied';
+    if(res.status===429)code='quota_rate_limited';
+    throw {error:{code,message:msg||('HTTP '+res.status)}};
+  }
+  const reader=res.body.getReader(),dec=new TextDecoder();let buf='',answer='';
+  for(;;){
+    const {done,value}=await reader.read();if(done)break;
+    buf+=dec.decode(value,{stream:true});
+    let idx;
+    while((idx=buf.indexOf('\n'))>=0){
+      const line=buf.slice(0,idx).trim();buf=buf.slice(idx+1);
+      if(!line.startsWith('data:'))continue;
+      const data=line.slice(5).trim();
+      if(data==='[DONE]')continue;
+      try{const j=JSON.parse(data);const d=j.choices?.[0]?.delta?.content;if(d)answer+=d;}catch(e){}
+    }
+  }
+  return answer;
 }
 function aiErrorText(e){
   const code=String(e?.error?.code||'');
@@ -2629,16 +2644,14 @@ async function callAI(task,userContent,{signal}={}){
   if(aiBusy)throw Error('已有 AI 任务在进行，请等它完成再试');
   aiBusy=true;
   try{
-    const {id:modelId}=await getAiModel();
     const spec=AI_TASKS[task];
     let answer='',parsed=null,lastErr=null;
     for(let attempt=0;attempt<2&&!parsed;attempt++){
       answer='';
-      for await(const chunk of cloud.llm.chat.completions.create({
-        model:modelId,stream:true,temperature:0.3,signal,
-        response_format:{type:'json_object'},
-        messages:[{role:'system',content:AI_TONE+spec.system},{role:'user',content:userContent}]
-      })){const d=chunk.choices?.[0]?.delta?.content;if(d)answer+=d;}
+      try{
+        answer=await aiChat({model:AI_CONFIG.textModel,temperature:0.3,signal,responseFormat:{type:'json_object'},
+          messages:[{role:'system',content:AI_TONE+spec.system},{role:'user',content:userContent}]});
+      }catch(e){lastErr=e;continue;}
       try{parsed=spec.check(aiParseJson(answer));}catch(e){lastErr=e;}
     }
     if(!parsed)throw lastErr;
@@ -2657,10 +2670,8 @@ async function aiTextJd(text,{signal}={}){
   if(aiBusy)throw Error('已有 AI 任务在进行，请等它完成再试');
   aiBusy=true;
   try{
-    const {id}=await getAiModel();
-    let answer='';
-    for await(const chunk of cloud.llm.chat.completions.create({model:id,stream:true,temperature:0.1,signal,response_format:{type:'json_object'},max_tokens:800,
-      messages:[{role:'system',content:AI_JD_RULE},{role:'user',content:text+'\n\n（调用方已持有原文，jdText 输出"原文见用户内容"即可，不要复述原文。）'}]})){const d=chunk.choices?.[0]?.delta?.content;if(d)answer+=d;}
+    const answer=await aiChat({model:AI_CONFIG.textModel,temperature:0.1,signal,responseFormat:{type:'json_object'},maxTokens:800,
+      messages:[{role:'system',content:AI_JD_RULE},{role:'user',content:text+'\n\n（调用方已持有原文，jdText 输出"原文见用户内容"即可，不要复述原文。）'}]});
     return aiCleanJd(aiParseJson(answer));
   }finally{aiBusy=false;}
 }
@@ -2668,11 +2679,8 @@ async function aiVisionJd(dataUrl,{signal}={}){
   if(aiBusy)throw Error('已有 AI 任务在进行，请等它完成再试');
   aiBusy=true;
   try{
-    const {imageId}=await getAiModel(true);
-    if(!imageId)throw Error('当前没有支持图片识别的模型，请稍后再试，或把 JD 文字直接粘贴到输入框');
-    let answer='';
-    for await(const chunk of cloud.llm.chat.completions.create({model:imageId,stream:true,temperature:0.1,signal,response_format:{type:'json_object'},max_tokens:6000,
-      messages:[{role:'system',content:AI_JD_RULE},{role:'user',content:[{type:'image_url',image_url:{url:dataUrl}},{type:'text',text:'识别这张招聘岗位截图中的全部 JD 文字并按指定 JSON 输出。'}]}]})){const d=chunk.choices?.[0]?.delta?.content;if(d)answer+=d;}
+    const answer=await aiChat({model:AI_CONFIG.visionModel,temperature:0.1,signal,responseFormat:{type:'json_object'},maxTokens:6000,
+      messages:[{role:'system',content:AI_JD_RULE},{role:'user',content:[{type:'image_url',image_url:{url:dataUrl}},{type:'text',text:'识别这张招聘岗位截图中的全部 JD 文字并按指定 JSON 输出。'}]}]});
     return aiCleanJd(aiParseJson(answer));
   }finally{aiBusy=false;}
 }
