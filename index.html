@@ -2500,7 +2500,8 @@ loadState();
 {
 /* ============ 独立 AI 通道 v2：直连阿里云百炼（OpenAI 兼容格式） ============ */
 /* 文字任务走 qwen-plus，JD 截图识别走 qwen-vl-plus；更换模型只改这里 */
-const AI_CONFIG={proxy:'',baseURL:'https://dashscope.aliyuncs.com/compatible-mode/v1',apiKey:'sk-ws-H.PLPPMXM.QLeo.MEUCIAR4aOjDFVUhfA0NCnBqUtBzBUzfL_pZAmIUq9ICip-kAiEA_Y-xKEeTSiaxzDvih1X9ZOWM1KPKS2NrAxKF2b7m5vQ',textModel:'qwen-plus',visionModel:'qwen-vl-plus'};
+/* smartModel：加强档（更聪明）——岗位分析、面试复盘、工作复盘、课程整理；能力匹配、简历解析走 textModel 快速档 */
+const AI_CONFIG={proxy:'',baseURL:'https://dashscope.aliyuncs.com/compatible-mode/v1',apiKey:'sk-ws-H.PLPPMXM.QLeo.MEUCIAR4aOjDFVUhfA0NCnBqUtBzBUzfL_pZAmIUq9ICip-kAiEA_Y-xKEeTSiaxzDvih1X9ZOWM1KPKS2NrAxKF2b7m5vQ',textModel:'qwen-turbo',smartModel:'qwen-plus',visionModel:'qwen-vl-plus'};
 let aiBusy=false;
 async function aiChat({model,messages,temperature=0.3,maxTokens,responseFormat,signal}){
   const endpoint=(AI_CONFIG.proxy||AI_CONFIG.baseURL)+'/chat/completions';
@@ -2649,7 +2650,7 @@ async function callAI(task,userContent,{signal}={}){
     for(let attempt=0;attempt<2&&!parsed;attempt++){
       answer='';
       try{
-        answer=await aiChat({model:AI_CONFIG.textModel,temperature:0.3,signal,responseFormat:{type:'json_object'},
+        answer=await aiChat({model:['jdAnalysis','interviewReview','workReview','studyNotes'].includes(task)?AI_CONFIG.smartModel:AI_CONFIG.textModel,temperature:0.3,signal,responseFormat:{type:'json_object'},
           messages:[{role:'system',content:AI_TONE+spec.system},{role:'user',content:userContent}]});
       }catch(e){lastErr=e;continue;}
       try{parsed=spec.check(aiParseJson(answer));}catch(e){lastErr=e;}
