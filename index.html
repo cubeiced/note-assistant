@@ -1081,10 +1081,16 @@ function renderEntry(item){
       ${ui.bulkMode?'':`<span class="entry-actions"><span data-act="edit">编辑</span><span data-act="del">删除</span></span>`}
     </div>
     ${item.title?`<div class="entry-title">${escapeHtml(item.title)}</div>`:''}
-    <div class="entry-body${fullBody?'':' entry-excerpt'}">${escapeHtml(plainBody)}</div>
-    ${showMore?'<span class="entry-more">阅读全文 →</span>':''}
+    ${(item.aiType==='workReview'&&item.aiData)
+      ? (fullBody
+          ? `<div class="entry-body" data-wlcard="1"></div>`
+          : `<div class="entry-body entry-excerpt">${wlReviewBody(item.aiData,false)}</div>`)
+      : `<div class="entry-body${fullBody?'':' entry-excerpt'}">${escapeHtml(plainBody)}</div>`}
+    ${!(item.aiType==='workReview'&&item.aiData)&&showMore?'<span class="entry-more">阅读全文 →</span>':''}
     ${item.images&&item.images.length?`<div class="entry-imgs">${item.images.map(s=>`<img src="${s}">`).join('')}</div>`:''}
   `;
+  const wlph=div.querySelector('[data-wlcard]');
+  if(wlph)wlph.replaceWith(wlReviewCardEl(item));
   if(ui.bulkMode){
     div.querySelector('.bulk-check').onchange=()=>{ toggleItemSelection(item.id); render(); };
   } else {
@@ -1214,10 +1220,58 @@ function currentWeekRange(ts){
   return { start:mon, end:sun, label:`${fmt(mon)} ~ ${fmt(sun)}` };
 }
 
-function addWorklogItem(folderId, tag, text, todos, images, weekRange){
+function addWorklogItem(folderId, tag, text, todos, images, weekRange, extra){
   state.items.push({ id:uid('i'), type:'note', folderId, title:null, rawText:text||'', tag:tag||null,
-    todos: todos||null, weekRange: weekRange||null, images: images||[], timestamp:Date.now(), updatedAt:Date.now() });
+    todos: todos||null, weekRange: weekRange||null, images: images||[], timestamp:Date.now(), updatedAt:Date.now(), ...(extra||{}) });
   saveState();
+}
+
+/* AI 今日复盘的卡片化渲染：收起=总览+统计，展开=分区块完整卡片 */
+function wlReviewBody(r, full){
+  const esc = escapeHtml;
+  const cnt = (a)=>((a&&a.length)||0);
+  const sec = (title, rows, k1, k2)=>{
+    if(!rows||!rows.length) return '';
+    return '<div style="font-size:12.7px;color:var(--ink-soft);font-weight:600;letter-spacing:.05em;margin:12px 0 2px;">'+title+' · '+rows.length+'</div>'
+      + rows.map(x=>'<div style="padding:7px 0;border-bottom:1px dashed var(--line);">'
+        +'<div style="font-size:14.2px;font-weight:600;color:var(--ink);line-height:1.5;">'+esc(x[k1]||'')+'</div>'
+        +(x[k2]?'<div style="font-size:13.3px;color:var(--ink-soft);line-height:1.65;margin-top:2px;">'+esc(x[k2])+'</div>':'')
+        +'</div>').join('');
+  };
+  if(!full){
+    const stat=['完成 '+cnt(r.done),'产出 '+cnt(r.outputs),'沉淀 '+cnt(r.skills),'提升 '+cnt(r.improve),'建议 '+cnt(r.tomorrow)].filter(s=>!s.endsWith(' 0')).join(' · ');
+    return '<div class="ai-emph" style="margin:2px 0 6px;"><small>AI 今日复盘</small><span class="ai-emph-text">'+esc(r.summary||'')+'</span></div>'
+      +(stat?'<div style="font-size:12.6px;color:var(--ink-soft);margin:0 0 4px 2px;">'+stat+'</div>':'')
+      +'<span class="entry-more">展开复盘卡片 →</span>';
+  }
+  let h='<div class="ai-emph" style="margin:2px 0 4px;"><small>AI 今日复盘</small><span class="ai-emph-text">'+esc(r.summary||'')+'</span></div>';
+  h+=sec('完成事项',r.done,'item','highlight');
+  h+=sec('关键产出与发现',r.outputs,'area','finding');
+  h+=sec('能力沉淀',r.skills,'name','note');
+  h+=sec('待提升',r.improve,'gap','suggestion');
+  if(r.tomorrow&&r.tomorrow.length)h+='<div style="font-size:12.7px;color:var(--ink-soft);font-weight:600;letter-spacing:.05em;margin:12px 0 2px;">明日建议 · '+r.tomorrow.length+'</div>'
+    +r.tomorrow.map((x,i)=>'<div style="display:flex;gap:8px;padding:5px 0;font-size:14.2px;color:var(--ink);line-height:1.6;"><span style="color:var(--accent);font-weight:600;flex:none;">'+(i+1)+'.</span><span>'+esc(x)+'</span></div>').join('');
+  return h;
+}
+/* 保存后的复盘卡片：与生成时（wlRunReview）同一套 aiSec/aiRowH 渲染，编辑写回 item.aiData 并同步纯文本 */
+function wlReviewCardEl(item){
+  const r=item.aiData;
+  const cnt=n=>'× '+n;
+  const card=document.createElement('div');card.className='ai-card';
+  card.innerHTML='<div class="ai-card-head"><b>🪞 AI 今日复盘</b><span class="ai-head-meta">'+escapeHtml(new Date(item.updatedAt||item.timestamp).toLocaleDateString('zh-CN')+' · 已保存')+'</span><button type="button" class="ai-edit-btn">✏️ 编辑</button></div>'
+    +(r.summary?'<div class="ai-emph"><small>今日总览</small><span class="ai-emph-text" data-path="summary">'+escapeHtml(r.summary)+'</span></div>':'')
+    +aiSec('完成事项',r.done.length?cnt(r.done.length):null)+r.done.map((x,i)=>aiRowH(x,'done.'+i,{t:'item',d:'highlight',badge:'已交付|high,进行中|mid,待开始|low'})).join('')
+    +aiSec('关键产出与发现',r.outputs.length?cnt(r.outputs.length):null)+r.outputs.map((x,i)=>aiRowH(x,'outputs.'+i,{t:'area',d:'finding',badge:'发现|mid,产出|high,方法论|low'})).join('')
+    +aiSec('能力沉淀',r.skills.length?cnt(r.skills.length):null)+r.skills.map((x,i)=>aiRowH(x,'skills.'+i,{t:'name',d:'note',badge:'能力|high,方法论|mid,发现|low'})).join('')
+    +aiSec('待提升',r.improve.length?cnt(r.improve.length):null)+r.improve.map((x,i)=>aiRowH(x,'improve.'+i,{t:'gap',d:'suggestion',badge:'优先补|high,有余力再改|mid,已改善|low'})).join('')
+    +aiSec('明日建议',r.tomorrow.length?cnt(r.tomorrow.length):null)+(r.tomorrow.length?'<div>'+r.tomorrow.map((x,i)=>'<label class="ai-todo"><input type="checkbox"><span data-path="tomorrow.'+i+'">'+escapeHtml(x)+'</span></label>').join('')+'</div>':'');
+  aiEdBind(card,r,()=>{
+    item.aiData=r;
+    item.rawText=aiReviewText(r);
+    item.updatedAt=Date.now();
+    saveState();
+  });
+  return card;
 }
 
 function renderWorklogView(){
@@ -1374,6 +1428,9 @@ function renderWlEntry(item){
   let bodyHtml;
   if(item.tag==='待办' && item.todos && item.todos.length){
     bodyHtml = item.todos.map((td,idx)=>`<div class="todo-row"><input type="checkbox" data-idx="${idx}" ${td.done?'checked':''}><span class="${td.done?'todo-done':''}">${escapeHtml(td.text)}</span></div>`).join('');
+  } else if(item.aiType==='workReview' && item.aiData){
+    const fullBody = ui.view==='item:'+item.id;
+    bodyHtml = fullBody?'<div class="entry-body" data-wlcard="1"></div>':wlReviewBody(item.aiData,false);
   } else {
     const fullBody = ui.view==='item:'+item.id;
     const plainBody = item.rawText||'';
@@ -1391,6 +1448,8 @@ function renderWlEntry(item){
     ${bodyHtml}
     ${item.images&&item.images.length?`<div class="entry-imgs">${item.images.map(s=>`<img src="${s}">`).join('')}</div>`:''}
   `;
+  const wlph=div.querySelector('[data-wlcard]');
+  if(wlph)wlph.replaceWith(wlReviewCardEl(item));
   if(ui.bulkMode){
     div.querySelector('.bulk-check').onchange=()=>{ toggleItemSelection(item.id); render(); };
   } else {
@@ -2899,7 +2958,7 @@ async function wlRunReview(slot,btn){
       +aiSec('明日建议',r.tomorrow.length?cnt(r.tomorrow.length):null)+(r.tomorrow.length?'<div>'+r.tomorrow.map((x,i)=>'<label class="ai-todo"><input type="checkbox"><span data-path="tomorrow.'+i+'">'+escapeHtml(x)+'</span></label>').join('')+'</div>':'');
     const acts=document.createElement('div');acts.className='ai-card-actions';
     const save=document.createElement('button');save.className='v4-button';save.type='button';save.textContent='保存为今日复盘';
-    save.onclick=()=>{const folder=state.folders.find(f=>f.isWorklog);addWorklogItem(folder.id,'日报',aiReviewText(r),null,[]);slot.innerHTML='';toast('复盘已保存到工作日志');render();};
+    save.onclick=()=>{const folder=state.folders.find(f=>f.isWorklog);addWorklogItem(folder.id,'日报',aiReviewText(r),null,[],null,{aiType:'workReview',aiData:r});slot.innerHTML='';toast('复盘已保存到工作日志');render();};
     const re=document.createElement('button');re.className='ghost-btn';re.type='button';re.textContent='重新生成';re.onclick=()=>wlRunReview(slot,re);
     acts.append(save,re);card.append(acts);
     aiEdBind(card,r,null);slot.append(card);
