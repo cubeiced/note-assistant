@@ -1096,7 +1096,7 @@ function renderEntry(item){
   } else {
     div.classList.add('clickable');
     div.addEventListener('click',e=>{
-      if(e.target.closest('[data-act],button,a,input,textarea,select,summary,.v4-meta,.ai-edit-btn,.bulk-check'))return;
+      if(e.target.closest('[data-act],button,a,input,textarea,select,summary,.v4-meta,.ai-card,.bulk-check'))return;
       ui.prevView=ui.view;ui.view='item:'+item.id;render();window.scrollTo(0,0);
     });
     div.querySelector('[data-act="del"]').onclick=()=>{
@@ -1455,7 +1455,7 @@ function renderWlEntry(item){
   } else {
     div.classList.add('clickable');
     div.addEventListener('click',e=>{
-      if(e.target.closest('[data-act],button,a,input,textarea,select,summary,.v4-meta,.ai-edit-btn,.bulk-check'))return;
+      if(e.target.closest('[data-act],button,a,input,textarea,select,summary,.v4-meta,.ai-card,.bulk-check'))return;
       ui.prevView=ui.view;ui.view='item:'+item.id;render();window.scrollTo(0,0);
     });
     div.querySelector('[data-act="del"]').onclick=()=>{
