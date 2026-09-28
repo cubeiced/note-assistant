@@ -873,9 +873,9 @@ function renderSidebar(){
   const unfiledRow = navItem('folder:__unfiled__','未分类', folderCount('__unfiled__'), colorFor('__unfiled__'), null, false);
   folderListEl.appendChild(unfiledRow);
 
-  el.querySelector('#goAll').onclick=()=>{ui.view='all'; render();};
+  el.querySelector('#goAll').onclick=()=>{ui.view='all'; ui.scrollMemo=null; render();};
   el.querySelector('#addFolderBtn').onclick=()=>{ui.modal={type:'newFolder', name:''}; render();};
-  el.querySelectorAll('.module-card').forEach(c=>c.onclick=()=>{ui.view=c.dataset.view; render();});
+  el.querySelectorAll('.module-card').forEach(c=>c.onclick=()=>{ui.view=c.dataset.view; ui.scrollMemo=null; render();});
   el.querySelector('#searchInput').oninput=(e)=>{ui.search=e.target.value; render();};
   el.querySelector('#exportJsonBtn').onclick=exportBackup;
   el.querySelector('#importJsonBtn').onclick=()=>el.querySelector('#importFile').click();
@@ -900,7 +900,7 @@ function navItem(viewKey,label,count,color,delId,showDel){
       }
       return;
     }
-    ui.view = viewKey; render();
+    ui.view = viewKey; ui.scrollMemo=null; render();
   };
   if(delId){
     b.querySelector('.nav-label').ondblclick=(e)=>{
@@ -954,7 +954,7 @@ function renderItemDetail(id){
   const wrap = document.createElement('div');
   const back = document.createElement('span');
   back.className='ghost-btn'; back.textContent='← 返回列表';
-  back.onclick = ()=>{ ui.view = ui.prevView || 'all'; ui.prevView = null; render(); window.scrollTo(0,0); };
+  back.onclick = ()=>{ ui.view = ui.prevView || 'all'; ui.prevView = null; render(); const memo=ui.scrollMemo; ui.scrollMemo=null; const mm=document.querySelector('.main'); if(mm)mm.scrollTop=(memo&&memo.main)||0; window.scrollTo(0,(memo&&memo.win)||0); };
   const head = document.createElement('div'); head.className='view-head'; head.append(back);
   wrap.append(head);
   const item = state.items.find(i=>i.id===id);
@@ -1071,7 +1071,8 @@ function renderEntry(item){
   div.style.borderLeftColor = color;
   const fullBody = ui.view==='item:'+item.id;
   const plainBody = item.rawText||item.content||'';
-  const showMore = !fullBody && (plainBody.length>120||!!item.bodyHtml);
+  const isTodo = item.tag==='待办' && item.todos && item.todos.length;
+  const showMore = !fullBody && !isTodo && (plainBody.length>120||!!item.bodyHtml);
   div.innerHTML = `
     <div class="entry-top">
       ${ui.bulkMode?`<input class="bulk-check" type="checkbox" aria-label="选择这条内容" ${isItemSelected(item.id)?'checked':''}>`:''}
@@ -1081,23 +1082,31 @@ function renderEntry(item){
       ${ui.bulkMode?'':`<span class="entry-actions"><span data-act="edit">编辑</span><span data-act="del">删除</span></span>`}
     </div>
     ${item.title?`<div class="entry-title">${escapeHtml(item.title)}</div>`:''}
-    ${(item.aiType==='workReview'&&item.aiData)
+    ${isTodo
+      ? item.todos.map((td,idx)=>`<div class="todo-row"><input type="checkbox" data-idx="${idx}" ${td.done?'checked':''}><span class="${td.done?'todo-done':''}">${escapeHtml(td.text)}</span></div>`).join('')
+      : (item.aiType==='workReview'&&item.aiData)
       ? (fullBody
           ? `<div class="entry-body" data-wlcard="1"></div>`
           : `<div class="entry-body entry-excerpt">${wlReviewBody(item.aiData,false)}</div>`)
       : `<div class="entry-body${fullBody?'':' entry-excerpt'}">${escapeHtml(plainBody)}</div>`}
-    ${!(item.aiType==='workReview'&&item.aiData)&&showMore?'<span class="entry-more">阅读全文 →</span>':''}
+    ${!isTodo&&!(item.aiType==='workReview'&&item.aiData)&&showMore?'<span class="entry-more">阅读全文 →</span>':''}
     ${item.images&&item.images.length?`<div class="entry-imgs">${item.images.map(s=>`<img src="${s}">`).join('')}</div>`:''}
   `;
   const wlph=div.querySelector('[data-wlcard]');
   if(wlph)wlph.replaceWith(wlReviewCardEl(item));
+  if(!ui.bulkMode && isTodo){
+    div.querySelectorAll('.todo-row input[type=checkbox]').forEach(cb=>{
+      cb.onchange = ()=>{ item.todos[+cb.dataset.idx].done = cb.checked; saveState(); render(); };
+    });
+  }
   if(ui.bulkMode){
     div.querySelector('.bulk-check').onchange=()=>{ toggleItemSelection(item.id); render(); };
   } else {
     div.classList.add('clickable');
     div.addEventListener('click',e=>{
+      if(v4selActive())return;
       if(e.target.closest('[data-act],button,a,input,textarea,select,summary,.v4-meta,.ai-card,.bulk-check'))return;
-      ui.prevView=ui.view;ui.view='item:'+item.id;render();window.scrollTo(0,0);
+      ui.scrollMemo={main:(document.querySelector('.main')||{}).scrollTop||0,win:window.scrollY||0};ui.prevView=ui.view;ui.view='item:'+item.id;render();window.scrollTo(0,0);
     });
     div.querySelector('[data-act="del"]').onclick=()=>{
       removeItems([item.id], '删除这条内容？此操作无法撤销。');
@@ -1198,7 +1207,7 @@ function renderJobsView(){
             ${j.tag?`<span class="jcard-tag">${escapeHtml(j.tag)}</span>`:''}
             ${j.jdLink?`<a class="jcard-link" href="${escapeAttr(j.jdLink)}" target="_blank" rel="noopener">查看JD ↗</a>`:''}
           </div>`;
-        c.onclick=(e)=>{ if(e.target.closest('.jcard-link')) return; ui.modal={type:'editJob', job:j}; render(); };
+        c.onclick=(e)=>{ if(v4selActive()||e.target.closest('.jcard-link')) return; ui.modal={type:'editJob', job:j}; render(); };
         body.appendChild(c);
       });
       kb.appendChild(col);
@@ -1455,8 +1464,9 @@ function renderWlEntry(item){
   } else {
     div.classList.add('clickable');
     div.addEventListener('click',e=>{
+      if(v4selActive())return;
       if(e.target.closest('[data-act],button,a,input,textarea,select,summary,.v4-meta,.ai-card,.bulk-check'))return;
-      ui.prevView=ui.view;ui.view='item:'+item.id;render();window.scrollTo(0,0);
+      ui.scrollMemo={main:(document.querySelector('.main')||{}).scrollTop||0,win:window.scrollY||0};ui.prevView=ui.view;ui.view='item:'+item.id;render();window.scrollTo(0,0);
     });
     div.querySelector('[data-act="del"]').onclick=()=>{
       removeItems([item.id], '删除这条内容？此操作无法撤销。');
@@ -1500,7 +1510,7 @@ function renderCoursesView(){
     const card = document.createElement('div'); card.className='course-card';
     card.innerHTML = `<div><div class="cname">${escapeHtml(c.name)}</div><div class="ccount">${n} 个知识点</div></div><span class="cdel" data-del>删除</span>`;
     card.onclick=(e)=>{
-      if(e.target.closest('[data-del]')) return;
+      if(v4selActive()||e.target.closest('[data-del]')) return;
       ui.courseDetail = c.id; resetCourseCapture(c.id); render();
     };
     card.querySelector('[data-del]').onclick=(e)=>{
@@ -2175,6 +2185,8 @@ document.addEventListener('click', (e)=>{
 /* ===================== 工具函数 ===================== */
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escapeAttr(s){ return escapeHtml(s); }
+/* 划选文字保护：松手时若存在文本选区，就不触发条目/卡片的点击跳转，保证内容可复制 */
+function v4selActive(){ const s=window.getSelection(); return !!(s && !s.isCollapsed && String(s).trim().length); }
 
 /* V4: additive upgrade; original database and independent modules retained. */
 const v4css=document.createElement('style');v4css.textContent=`
