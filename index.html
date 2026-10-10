@@ -2570,9 +2570,9 @@ loadState();
 /* ============ AI 通道 v1：托管后端免密钥调用，三个板块共用 ============ */
 {
 /* ============ 独立 AI 通道 v2：直连阿里云百炼（OpenAI 兼容格式） ============ */
-/* 文字任务走 qwen-plus，JD 截图识别走 qwen-vl-plus；更换模型只改这里 */
+/* 文字任务走 qwen-plus，JD 截图识别走 qwen3-vl-plus（qwen-vl-plus 已于 2026-10-10 下线）；更换模型只改这里 */
 /* smartModel：加强档（更聪明）——岗位分析、面试复盘、工作复盘、课程整理；能力匹配、简历解析走 textModel 快速档 */
-const AI_CONFIG={proxy:'',baseURL:'https://dashscope.aliyuncs.com/compatible-mode/v1',apiKey:'sk-ws-H.PLPPMXM.QLeo.MEUCIAR4aOjDFVUhfA0NCnBqUtBzBUzfL_pZAmIUq9ICip-kAiEA_Y-xKEeTSiaxzDvih1X9ZOWM1KPKS2NrAxKF2b7m5vQ',textModel:'qwen-turbo',smartModel:'qwen-plus',visionModel:'qwen-vl-plus'};
+const AI_CONFIG={proxy:'',baseURL:'https://dashscope.aliyuncs.com/compatible-mode/v1',apiKey:'sk-ws-H.PLPPMXM.QLeo.MEUCIAR4aOjDFVUhfA0NCnBqUtBzBUzfL_pZAmIUq9ICip-kAiEA_Y-xKEeTSiaxzDvih1X9ZOWM1KPKS2NrAxKF2b7m5vQ',textModel:'qwen-turbo',smartModel:'qwen-plus',visionModel:'qwen3-vl-plus'};
 let aiBusy=false;
 async function aiChat({model,messages,temperature=0.3,maxTokens,responseFormat,signal}){
   const endpoint=(AI_CONFIG.proxy||AI_CONFIG.baseURL)+'/chat/completions';
