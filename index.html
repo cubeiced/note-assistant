@@ -2573,7 +2573,7 @@ loadState();
 {
 /* ============ 独立 AI 通道 v2：直连阿里云百炼（OpenAI 兼容格式） ============ */
 /* 文字任务走 qwen-plus，JD 截图识别走 qwen3-vl-plus（qwen-vl-plus 已于 2026-10-10 下线）；更换模型只改这里 */
-/* smartModel：加强档（更聪明）——岗位分析、面试复盘、工作复盘、课程整理；能力匹配、简历解析走 textModel 快速档 */
+/* smartModel：加强档（更聪明）——岗位分析、面试复盘、工作复盘、课程整理；能力匹配、简历解析走 textModel 快速档（能力匹配带思考链） */
 /* thinkOn:false 一键关闭思考链；thinkBudget 限制思考字数（token），1024≈2000 字思考≈18 秒，0/不填=不限（可能 50-70 秒）；更换模型只改这里 */
 const AI_CONFIG={proxy:'',baseURL:'https://dashscope.aliyuncs.com/compatible-mode/v1',apiKey:'sk-ws-H.PLPPMXM.QLeo.MEUCIAR4aOjDFVUhfA0NCnBqUtBzBUzfL_pZAmIUq9ICip-kAiEA_Y-xKEeTSiaxzDvih1X9ZOWM1KPKS2NrAxKF2b7m5vQ',textModel:'qwen-turbo',smartModel:'qwen-plus',visionModel:'qwen3-vl-plus',thinkOn:true,thinkBudget:1024};
 let aiBusy=false;
@@ -2782,7 +2782,8 @@ async function callAI(task,userContent,{signal,think}={}){
   try{
     const spec=AI_TASKS[task];
     const smartTask=['jdAnalysis','interviewReview','workReview','studyNotes'].includes(task);
-    const smart=AI_CONFIG.thinkOn!==false&&(think!==undefined?think:smartTask);
+    const thinkTask=smartTask||task==='aiMatch'; /* 能力匹配保持快速档模型，但带思考链 */
+    const smart=AI_CONFIG.thinkOn!==false&&(think!==undefined?think:thinkTask);
     let answer='',parsed=null,lastErr=null,thinkTxt='',thinkSec=0;
     for(let attempt=0;attempt<2&&!parsed;attempt++){
       answer='';thinkTxt='';
@@ -3205,6 +3206,7 @@ renderAIMatchView=function(){
    slot.append(box);return;}
   const p=document.createElement('p');p.className='ja-section';
   if(aiMatchState.loading)p.textContent='AI 正在根据岗位参考库生成方案，请稍候…';else if(aiMatchState.error)p.textContent=aiMatchState.error;else if(aiMatchState.result){const r=aiMatchState.result;const lib=(state.skills||[]).find(s=>s.job===r.job);const sal=lib&&lib.salary?'<p class="ja-muted" style="font-size:13.2px;margin:8px 0 0;">薪酬参考：'+escapeHtml(lib.salary)+'</p>':'';p.innerHTML='<h3>'+escapeHtml(r.job)+'</h3><h4>参考能力</h4><div class="ja-tags">'+r.abilities.map(a=>'<span>'+escapeHtml(a)+'</span>').join('')+'</div><h4>推荐提升方案</h4>'+(r.plan&&r.plan.length?'<div class="ai-plan">'+r.plan.map((s,i)=>'<div class="ai-plan-stage"><b>'+(i+1)+'. '+escapeHtml(s.stage)+'</b><ul>'+s.points.map(pt=>'<li>'+escapeHtml(pt)+'</li>').join('')+'</ul></div>').join('')+'</div>':'<p>方案生成异常，请重新生成。</p>')+sal+(lib&&lib.levels&&lib.levels.length?'<h4>能力等级参考</h4><div>'+lib.levels.map(l=>'<div class="ai-next-line">'+escapeHtml(l)+'</div>').join('')+'</div>':'')+(lib&&lib.keywords&&lib.keywords.length?'<h4>简历关键词</h4><div class="ja-tags">'+lib.keywords.map(k=>'<span>'+escapeHtml(k)+'</span>').join('')+'</div>':'')+'<small>能力来自参考库，方案由 AI 生成，请结合目标 JD 核实。</small>';
+   if(r.__think)p.prepend(aiThinkEl(r.__think));
    const acts=document.createElement('div');acts.className='ai-card-actions';
    const sv=document.createElement('button');sv.className='v4-button';sv.type='button';sv.textContent='💾 保存为文档';
    sv.onclick=()=>{const lib2=(state.skills||[]).find(s=>s.job===r.job);const L=['【AI 能力匹配】'+r.job,'参考能力：'+r.abilities.join('、'),'','推荐提升方案：'];(r.plan||[]).forEach((s,i)=>{L.push((i+1)+'. '+s.stage);(s.points||[]).forEach(pt=>L.push('  - '+pt));});if(lib2&&lib2.levels&&lib2.levels.length){L.push('','能力等级参考：');lib2.levels.forEach(l=>L.push('· '+l));}if(lib2&&lib2.keywords&&lib2.keywords.length)L.push('','简历关键词：'+lib2.keywords.join('、'));const target=state.folders.find(f=>f.name==='学习资料')||state.folders.find(f=>f.isWorklog)||null;addItem('doc',target?target.id:'__unfiled__','AI 能力匹配 · '+r.job,L.join('\n'),[]);toast('已保存为文档「AI 能力匹配 · '+r.job+'」'+(target?'（在「'+target.name+'」文件夹）':'（在「未分类」）'));};
