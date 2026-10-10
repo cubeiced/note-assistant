@@ -2574,14 +2574,23 @@ loadState();
 /* ============ 独立 AI 通道 v2：直连阿里云百炼（OpenAI 兼容格式） ============ */
 /* 文字任务走 qwen-plus，JD 截图识别走 qwen3-vl-plus（qwen-vl-plus 已于 2026-10-10 下线）；更换模型只改这里 */
 /* smartModel：加强档（更聪明）——岗位分析、面试复盘、工作复盘、课程整理；能力匹配、简历解析走 textModel 快速档（能力匹配带思考链） */
-/* thinkOn:false 一键关闭思考链；thinkBudget 限制思考字数（token），1024≈2000 字思考≈18 秒，0/不填=不限（可能 50-70 秒）；更换模型只改这里 */
-const AI_CONFIG={proxy:'',baseURL:'https://dashscope.aliyuncs.com/compatible-mode/v1',apiKey:'sk-ws-H.PLPPMXM.QLeo.MEUCIAR4aOjDFVUhfA0NCnBqUtBzBUzfL_pZAmIUq9ICip-kAiEA_Y-xKEeTSiaxzDvih1X9ZOWM1KPKS2NrAxKF2b7m5vQ',textModel:'qwen-turbo',smartModel:'qwen-plus',visionModel:'qwen3-vl-plus',thinkOn:true,thinkBudget:1024};
+/* thinkOn:false 一键关闭思考链；thinkBudget 限制思考字数（token），512≈1000 字思考≈7-9 秒，0/不填=不限（可能 50-70 秒）；更换模型只改这里 */
+const AI_CONFIG={proxy:'',baseURL:'https://dashscope.aliyuncs.com/compatible-mode/v1',apiKey:'sk-ws-H.PLPPMXM.QLeo.MEUCIAR4aOjDFVUhfA0NCnBqUtBzBUzfL_pZAmIUq9ICip-kAiEA_Y-xKEeTSiaxzDvih1X9ZOWM1KPKS2NrAxKF2b7m5vQ',textModel:'qwen-turbo',smartModel:'qwen-plus',visionModel:'qwen3-vl-plus',thinkOn:true,thinkBudget:512};
 let aiBusy=false;
-async function aiChat({model,messages,temperature=0.3,maxTokens,responseFormat,signal,think,thinkBudget,onThink}){
+/* 退化输出检测：模型偶发陷入重复循环（如一直吐 "1.000000000...002"），输出会烧满额度还返回垃圾 → 检测到就掐断重试 */
+function aiDegenerate(s){
+  const tail=s.slice(-400);
+  if(tail.length>=300&&new Set(tail).size<12)return true;      /* 字符种类极少：数字 / 符号循环 */
+  if(/(.{4,24}?)\1{9,}/.test(tail))return true;                 /* 同一片段连续重复 10 次以上（≥40 字符的循环才算） */
+  return false;
+}
+async function aiChat({model,messages,temperature=0.3,maxTokens,responseFormat,signal,think,thinkBudget,onThink,onContent}){
   const endpoint=(AI_CONFIG.proxy||AI_CONFIG.baseURL)+'/chat/completions';
   const headers={'Content-Type':'application/json'};
   if(!AI_CONFIG.proxy&&AI_CONFIG.apiKey)headers.Authorization='Bearer '+AI_CONFIG.apiKey;
-  const res=await fetch(endpoint,{method:'POST',signal,headers,
+  const ctl=new AbortController();
+  if(signal)signal.addEventListener('abort',()=>ctl.abort(),{once:true});
+  const res=await fetch(endpoint,{method:'POST',signal:ctl.signal,headers,
     body:JSON.stringify({model,messages,stream:true,temperature,...(maxTokens?{max_tokens:maxTokens}:{}),...(responseFormat?{response_format:responseFormat}:{}),...(think?{enable_thinking:true,...(thinkBudget?{thinking_budget:thinkBudget}:{})}:{})})});
   if(!res.ok){
     let code='http_'+res.status,msg='';
@@ -2590,24 +2599,34 @@ async function aiChat({model,messages,temperature=0.3,maxTokens,responseFormat,s
     if(res.status===429)code='quota_rate_limited';
     throw {error:{code,message:msg||('HTTP '+res.status)}};
   }
-  const reader=res.body.getReader(),dec=new TextDecoder();let buf='',answer='',thinkTxt='';
-  for(;;){
-    const {done,value}=await reader.read();if(done)break;
-    buf+=dec.decode(value,{stream:true});
-    let idx;
-    while((idx=buf.indexOf('\n'))>=0){
-      const line=buf.slice(0,idx).trim();buf=buf.slice(idx+1);
-      if(!line.startsWith('data:'))continue;
-      const data=line.slice(5).trim();
-      if(data==='[DONE]')continue;
-      try{const j=JSON.parse(data);const dl=j.choices?.[0]?.delta||{};if(dl.content)answer+=dl.content;if(dl.reasoning_content){thinkTxt+=dl.reasoning_content;if(onThink)onThink(dl.reasoning_content,thinkTxt);}}catch(e){}
+  const reader=res.body.getReader(),dec=new TextDecoder();let buf='',answer='',thinkTxt='',bad=null;
+  try{
+    for(;;){
+      const {done,value}=await reader.read();if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      let idx;
+      while((idx=buf.indexOf('\n'))>=0){
+        const line=buf.slice(0,idx).trim();buf=buf.slice(idx+1);
+        if(!line.startsWith('data:'))continue;
+        const data=line.slice(5).trim();
+        if(data==='[DONE]')continue;
+        try{
+          const j=JSON.parse(data);const dl=j.choices?.[0]?.delta||{};
+          if(dl.content){answer+=dl.content;if(onContent)onContent(answer.length);if(answer.length>600&&aiDegenerate(answer)){bad='content';ctl.abort();}}
+          if(dl.reasoning_content){thinkTxt+=dl.reasoning_content;if(onThink)onThink(dl.reasoning_content,thinkTxt);if(thinkTxt.length>1500&&aiDegenerate(thinkTxt)){bad='think';ctl.abort();}}
+        }catch(e){}
+        if(bad)break;
+      }
+      if(bad)break;
     }
-  }
+  }catch(e){if(!bad)throw e;} /* 退化掐断会抛 AbortError，用我们自己的错误覆盖 */
+  if(bad)throw {error:{code:'degenerate_output',message:'模型这次输出陷入重复循环（'+(bad==='think'?'思考阶段':'正文阶段')+'），已自动重试'}};
   return answer;
 }
 function aiErrorText(e){
   const code=String(e?.error?.code||'');
   if(code.startsWith('auth_'))return 'AI 服务连接被拒绝，请刷新页面重试';
+  if(code.startsWith('degenerate_'))return '模型这次输出异常（陷入重复），已自动重试，请再点一次生成';
   if(code==='quota_rate_limited')return 'AI 请求太频繁，请稍等几秒再试';
   if(code.startsWith('quota_'))return 'AI 服务额度已用完，请稍后再试';
   if(code.startsWith('gateway_')||code.startsWith('model_'))return 'AI 服务暂时不可用，请点击"重新生成"重试';
@@ -2706,12 +2725,12 @@ const AI_TASKS={
   }
  },
  aiMatch:{
-  system:'你是职业学习助手。用户会提供一个岗位、该岗位的参考能力列表和一份参考方案。输出严格 JSON（不要输出其他文字）：{"job":"岗位名","abilities":["必须与参考能力列表逐字一致"],"plan":[{"stage":"阶段名（含建议时长，如：基础巩固 · 第1-2周）","points":["可执行动作1","可执行动作2","可执行动作3"]}]}。规则：abilities 必须逐字等于给定参考能力，不得增删改；plan 固定 4 个阶段，依次为：基础巩固、进阶深入、实践项目、求职准备；每个阶段的 points 为 3-5 条具体可执行动作，每条 15-40 字、只说一件事；禁止输出大段连续文字，禁止空话套话；全部使用中文。',
+  system:'你是职业学习助手。用户会提供一个岗位、该岗位的参考能力列表和一份参考方案，这些仅供你理解岗位方向，不要在输出里复述或改写能力列表。输出严格 JSON（不要输出其他文字）：{"plan":[{"stage":"阶段名（含建议时长，如：基础巩固 · 第1-2周）","points":["可执行动作1","可执行动作2","可执行动作3"]}]}。规则：plan 固定 4 个阶段，依次为：基础巩固、进阶深入、实践项目、求职准备；每个阶段的 points 为 3-5 条具体可执行动作，每条 15-40 字、只说一件事，动作要围绕参考能力逐项设计，让人能照着补齐短板；禁止输出大段连续文字，禁止空话套话；全部使用中文。',
   check(r){
    r=r||{};
    const stages=(Array.isArray(r.plan)?r.plan:[]).map(s=>({stage:String(s?.stage||'').trim(),points:(Array.isArray(s?.points)?s.points:[]).map(x=>String(x).trim()).filter(Boolean)})).filter(s=>s.stage&&s.points.length);
    if(!stages.length&&typeof r.plan==='string'&&r.plan.trim())stages.push({stage:'提升方案',points:r.plan.split(/[。；;]\s*/).map(x=>x.trim()).filter(Boolean)});
-   return {job:String(r.job||''),abilities:Array.isArray(r.abilities)?r.abilities.map(String):[],plan:stages};
+   return {job:String(r.job||''),plan:stages};
   }
  }
 };
@@ -2773,7 +2792,15 @@ const aiThinkUI=(()=>{
       chip.classList.remove('live');
       const s=sec!=null?sec:Math.max(1,Math.round(lastSec));
       headTxt.textContent='已思考（用时 '+s+' 秒）';
-    }
+    },
+    /* 思考结束、开始写正式结果：标明阶段，避免看起来"卡住" */
+    content(len){
+      if(!live||!chip)return;
+      lastSec=(Date.now()-t0)/1000;
+      headTxt.textContent='思考完成，正在写结果…（'+len+' 字 · 已 '+Math.round(lastSec)+' 秒）';
+    },
+    /* 出错自动重试时告知用户，不让气泡僵在原处 */
+    note(msg){if(chip)headTxt.textContent=msg;}
   };
 })();
 async function callAI(task,userContent,{signal,think}={}){
@@ -2790,10 +2817,12 @@ async function callAI(task,userContent,{signal,think}={}){
       aiThinkUI.reset();
       try{
         const t0=Date.now();
-        answer=await aiChat({model:smartTask?AI_CONFIG.smartModel:AI_CONFIG.textModel,temperature:0.3,signal,responseFormat:{type:'json_object'},think:smart,thinkBudget:AI_CONFIG.thinkBudget,
+        /* 注意：qwen-turbo 开思考时不能再开 response_format:json_object（服务端组合 bug，会陷入重复循环），靠提示词 + aiParseJson 兜底；plus 任务不受影响 */
+        answer=await aiChat({model:smartTask?AI_CONFIG.smartModel:AI_CONFIG.textModel,temperature:0.3,signal,responseFormat:smartTask?{type:'json_object'}:null,maxTokens:6000,think:smart,thinkBudget:AI_CONFIG.thinkBudget,
           onThink:(d,full)=>{thinkTxt=full;thinkSec=(Date.now()-t0)/1000;aiThinkUI.push(d,full);},
+          onContent:len=>aiThinkUI.content(len),
           messages:[{role:'system',content:AI_TONE+spec.system},{role:'user',content:userContent}]});
-      }catch(e){lastErr=e;continue;}
+      }catch(e){if(attempt===0)aiThinkUI.note('本次输出异常，正在自动重试…');lastErr=e;continue;}
       try{parsed=spec.check(aiParseJson(answer));}catch(e){lastErr=e;}
     }
     aiThinkUI.done(smart&&thinkTxt?Math.max(1,Math.round(thinkSec)):null);
@@ -3196,7 +3225,7 @@ const aimCss=document.createElement('style');aimCss.textContent=`.aim-cands{marg
 renderAIMatchView=function(){
  const wrap=document.createElement('div');wrap.innerHTML='<div class="view-head"><span class="view-title">AI能力匹配</span></div><p class="view-hint">依据职业参考库生成提升建议；不代表具体 JD 要求或个人能力评估。</p><div class="job-form"><div class="job-form-field"><label for="aiJobInput">你想了解的岗位</label><input id="aiJobInput" placeholder="例如：Java后端 / 运营 / 算法" maxlength="200"></div><p class="ja-muted">不用输全名：输「运营」「算法」会列出相关方向让你点选；库里没有的会列出全部 41 个岗位。当前支持：技术 / AI新兴 / 产品 / 运营 / 销售 / 职能 6 大方向 41 个岗位及其别名。</p><div class="job-form-actions"><button id="aiGenerateBtn">生成匹配方案</button></div></div><div id="aiResultSlot" aria-live="polite"></div>';
  const input=wrap.querySelector('input'),btn=wrap.querySelector('button'),slot=wrap.querySelector('#aiResultSlot');input.value=aiMatchState.input;input.oninput=e=>{aiMatchState.input=e.target.value;if(aiMatchState.candidates)aiMatchState.candidates=null;};
- async function startGenerate(standard){aiMatchState.candidates=null;aiMatchState.result=null;aiMatchState.error='';input.value=standard.job;aiMatchState.input=standard.job;aiMatchState.loading=true;draw();try{const r=await callAI('aiMatch','岗位：'+standard.job+'\n参考能力：'+JSON.stringify(standard.abilities)+'\n原参考方案（供润色参考）：'+standard.plan);if(r.job!==standard.job||!Array.isArray(r.abilities)||r.abilities.length!==standard.abilities.length||r.abilities.some((x,i)=>x!==standard.abilities[i])||!Array.isArray(r.plan)||!r.plan.length)throw Error('AI 返回的能力与参考库不一致，请重试');aiMatchState.result=r;}catch(e){aiMatchState.error=aiErrorText(e);}finally{aiMatchState.loading=false;if(wrap.isConnected)draw();}}
+ async function startGenerate(standard){aiMatchState.candidates=null;aiMatchState.result=null;aiMatchState.error='';input.value=standard.job;aiMatchState.input=standard.job;aiMatchState.loading=true;draw();try{const r=await callAI('aiMatch','岗位：'+standard.job+'\n参考能力：'+JSON.stringify(standard.abilities)+'\n原参考方案（供润色参考）：'+standard.plan);if(!Array.isArray(r.plan)||!r.plan.length)throw Error('AI 返回的方案为空，请重试');r.job=standard.job;r.abilities=standard.abilities.slice();aiMatchState.result=r;}catch(e){aiMatchState.error=aiErrorText(e);}finally{aiMatchState.loading=false;if(wrap.isConnected)draw();}}
  function draw(){btn.disabled=aiMatchState.loading;btn.textContent=aiMatchState.loading?'正在生成…':'生成匹配方案';slot.replaceChildren();
   if(aiMatchState.candidates){const c=aiMatchState.candidates;const box=document.createElement('div');box.className='ja-section aim-cands';
    if(c.browse){box.innerHTML='<h4>「'+escapeHtml(c.query)+'」还没收录进参考库</h4><p style="font-size:14px;color:var(--ink-soft);margin:6px 0 2px;">先看看库里有的 41 个岗位，点任何一个直接生成：</p>';
@@ -3616,7 +3645,7 @@ const EVAL_CASES=[
  {id:'study-normal',name:'课程整理 · 决策树笔记：四件套齐全',task:'studyNotes',input:'课堂笔记·机器学习第3讲 决策树\n信息增益：划分数据集前后熵的下降，ID3 用它选特征。增益率：C4.5 为克服信息增益偏好多值特征而提出。基尼指数：CART 使用的不纯度指标，越小越纯。剪枝：预剪枝在构造时提前停止，后剪枝生成完整树再自底向上剪。过拟合：树太深导致训练集表现好、测试集差。',judge(r){if(!r.tree||!r.tree.name)return{pass:false,detail:'知识树缺失'};const n=(r.concepts||[]).length,c=(r.cards||[]).length,q=(r.questions||[]).length;if(n<1||c<1||q<1)return{pass:false,detail:'概念/卡片/复习题存在空区块'};return{pass:true,detail:n+' 个概念 · '+c+' 张卡片 · '+q+' 道复习题 · 知识树正常'};}},
  {id:'resume-normal',name:'简历解析 · 数字结果不丢失',task:'resumeFormat',input:EVAL_RESUME,judge(r,input){const s=JSON.stringify(r);if(!(r.groups||[]).length)return{pass:false,detail:'未解析出任何经历分区'};const nums=[...new Set(input.match(/\d+/g)||[])];const miss=nums.filter(n=>!s.includes(n));if(miss.length)return{pass:false,detail:'原文数字 '+miss.join(', ')+' 丢失，结果可能被改写'};return{pass:true,detail:(r.groups||[]).length+' 个分区，关键数字全部保留'};}},
  {id:'ir-normal',name:'面试复盘 · 一面记录：不虚构问题',task:'interviewReview',input:'面试轮次：一面\n被问的问题：介绍一下你做的拾级项目；你为什么想做AI产品经理\n卡壳的地方：被问「如何评估AI功能的效果」没答上来\n面试官反应：点了点头，追问了项目数据',judge(r){const qs=r.questions||[];if(!qs.length)return{pass:false,detail:'未整理出任何问题'};if(!/一/.test(r.round||''))return{pass:false,detail:'轮次丢失'};const madeUp=qs.filter(q=>!/拾级|产品|评估|项目/.test(q.q));if(madeUp.length)return{pass:false,detail:'出现疑似虚构的问题：'+madeUp.map(x=>x.q).join('；').slice(0,100)};const g=(r.gaps||[]).length,nx=(r.next||[]).length;if(!g||!nx)return{pass:false,detail:'能力缺口或下一步重点缺失'};return{pass:true,detail:qs.length+' 题 · '+g+' 条缺口 · '+nx+' 条下一步，无虚构问题'};}},
- {id:'ai-match',name:'能力匹配 · 内容运营：能力逐字一致+四阶段',task:'aiMatch',useStd:'内容运营',judge(r,std){if(r.job!==std.job)return{pass:false,detail:'岗位名与参考库不一致'};if(JSON.stringify(r.abilities)!==JSON.stringify(std.abilities))return{pass:false,detail:'能力清单未与参考库逐字一致'};if(!(r.plan||[]).length)return{pass:false,detail:'提升方案为空'};const miss=['基础巩固','进阶深入','实践项目','求职准备'].filter((s,i)=>!(r.plan[i]&&r.plan[i].stage&&r.plan[i].stage.includes(s)));if(miss.length)return{pass:false,detail:'四阶段不完整，缺：'+miss.join('、')};return{pass:true,detail:'能力逐字一致，四阶段齐全（'+r.plan.length+' 阶段）'};}}
+ {id:'ai-match',name:'能力匹配 · 内容运营：四阶段方案完整达标',task:'aiMatch',useStd:'内容运营',judge(r,std){if(r.job&&r.job!==std.job)return{pass:false,detail:'岗位名与参考库不一致'};if(!(r.plan||[]).length)return{pass:false,detail:'提升方案为空'};const miss=['基础巩固','进阶深入','实践项目','求职准备'].filter((s,i)=>!(r.plan[i]&&r.plan[i].stage&&r.plan[i].stage.includes(s)));if(miss.length)return{pass:false,detail:'四阶段不完整，缺：'+miss.join('、')};const thin=(r.plan||[]).some(s=>!Array.isArray(s.points)||s.points.length<3||s.points.length>5);if(thin)return{pass:false,detail:'存在阶段动作数不在 3-5 条区间'};return{pass:true,detail:'四阶段齐全（'+r.plan.length+' 阶段），动作数达标；能力清单已改由参考库直填，不再依赖模型复述'};}}
 ];
 async function evalStart(refresh){
   if(evalState.running)return;
@@ -3755,7 +3784,7 @@ window.aiSec=aiSec;window.aiRowH=aiRowH;window.aiBadgeH=aiBadgeH;
 window.aiStudyBody=aiStudyBody;window.aiStudyText=aiStudyText;window.aiTreeEl=aiTreeEl;window.aiStudyCard=aiStudyCard;
 window.aiEdBind=aiEdBind;window.aiEdSave=aiEdSave;window.aiReviewText=aiReviewText;
 window.irInterviewBody=irInterviewBody;window.AI_TONE=AI_TONE;
-window.AI_TASKS=AI_TASKS;window.callAI=callAI;window.aiErrorText=aiErrorText;
+window.AI_TASKS=AI_TASKS;window.callAI=callAI;window.aiChat=aiChat;window.aiErrorText=aiErrorText;
 /* 兜底：loadState 的首次渲染可能趁 SDK 下载间隙执行（早于本脚本注册侧边栏入口），这里补一次渲染 */
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>render());
 else render();
